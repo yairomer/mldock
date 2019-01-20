@@ -72,7 +72,7 @@ for details.
 - *pycharm*: Runs pycharm.
 - *run_server*: (Default) Runs a container with the following applications:
     - *Jupyter Notebook*: on port 9900
-    - *JupyterHub*: on port 9901
+    - *JupyterLab*: on port 9901
 
 If no *command_to_run* is supplied then the default command is used which is *run_server*.
 
@@ -87,7 +87,7 @@ docker run \
     omeryair/mldock reset_home_folder
 ```
 
-- Running the default script (Jupyter Notebook + Hub) + mapping the home folder:
+- Running the default script (Jupyter Notebook + Lab) + mapping the home folder:
 ``` bash
 docker run \
     --rm \

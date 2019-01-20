@@ -165,8 +165,9 @@ RUN . /app/venv/bin/activate && \
 
 ## Backup dockuser's home folder
 ## =============================
-RUN rsync -a /home/dockuser/ /home/.dockuser.home.backup/ && \
-    echo "#!/bin/bash\nset -e\nsudo rsync -a --del /home/.dockuser.home.backup/ /home/dockuser/" | sudo tee /usr/local/bin/reset_home_folder && \
+RUN mkdir /app/backups && \
+    rsync -a /home/dockuser/ /app/backups/dockuser_home/ && \
+    echo "#!/bin/bash\nset -e\nsudo rsync -a --del /app/backups/dockuser_home/ /home/dockuser/" | sudo tee /usr/local/bin/reset_home_folder && \
     sudo chmod a+x /usr/local/bin/reset_home_folder
     
 ## copy scripts
