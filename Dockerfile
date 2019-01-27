@@ -166,20 +166,33 @@ RUN . /app/venv/bin/activate && \
 ## Backup dockuser's home folder
 ## =============================
 RUN mkdir /app/backups && \
-    rsync -a /home/dockuser/ /app/backups/dockuser_home/ && \
+    cp -rp /home/dockuser /app/backups/dockuser_home && \
     echo "#!/bin/bash\nset -e\nsudo rsync -a --del /app/backups/dockuser_home/ /home/dockuser/" | sudo tee /usr/local/bin/reset_home_folder && \
     sudo chmod a+x /usr/local/bin/reset_home_folder
     
+## Apply home folder patch to update pycharm's setting
+## ===================================================
+## Patch was created using the following commands:
+##     cd /home
+##     sudo mv dockuser dockuser_new
+##     cp -rp /app/backup/dockuser_home /home/dockuser
+##     diff -ruN dockuser/ dockuser_new/ > /tmp/pycharm_home_folder.patch
+COPY ./resources/pycharm_home_folder.patch /app/patches/pycharm_home_folder.patch
+
+RUN echo "#!/bin/bash\ncd /home\npatch -s -p0 < /app/patches/pycharm_home_folder.patch" | sudo tee /usr/local/bin/apply_pycharm_patch && \
+    sudo chmod a+x /usr/local/bin/apply_pycharm_patch && \
+    apply_pycharm_patch
+
 ## copy scripts
 ## ============
 COPY /resources/run_server.sh /app/scripts/run_server.sh
 
 ## Set default environment variables
 ## =================================
-ENV NOTEBOOK_PORT="7600"
+ENV NOTEBOOK_PORT="9900"
 ENV NOTEBOOK_ARGS="--notebook-dir=/ --ip=0.0.0.0 --NotebookApp.token='' --no-browser --allow-root --ContentsManager.allow_hidden=True --FileContentsManager.allow_hidden=True"
 ENV NOTEBOOK_EXTRA_ARGS=""
-ENV JUPYTERLAB_PORT="7601"
+ENV JUPYTERLAB_PORT="9901"
 ENV JUPYTERLAB_ARGS="--notebook-dir=/ --ip=0.0.0.0 --NotebookApp.token='' --no-browser --allow-root"
 ENV JUPYTERLAB_EXTRA_ARGS=""
 
