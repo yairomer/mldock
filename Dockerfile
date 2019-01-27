@@ -99,7 +99,7 @@ RUN mkdir /opt/pycharm && \
     rm installer.tgz && \
     /usr/bin/python2 /opt/pycharm/helpers/pydev/setup_cython.py build_ext --inplace && \
     /usr/bin/python3 /opt/pycharm/helpers/pydev/setup_cython.py build_ext --inplace
-COPY ./pycharm.bin /usr/local/bin/pycharm
+COPY ./resources/pycharm.bin /usr/local/bin/pycharm
 
 ## Create dockuser user
 ## ====================
@@ -172,7 +172,7 @@ RUN mkdir /app/backups && \
     
 ## copy scripts
 ## ============
-COPY /run_server.sh /app/scripts/run_server.sh
+COPY /resources/run_server.sh /app/scripts/run_server.sh
 
 ## Set default environment variables
 ## =================================
