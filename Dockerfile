@@ -152,6 +152,11 @@ RUN sudo -H pip3 install -U virtualenv==16.2.0 && \
 ENV PATH="/app/venv/bin:$PATH"
 ENV MPLBACKEND=Agg
 
+## Import matplotlib the first time to build the font cache.
+## ---------------------------------------------------------
+RUN python -c "import matplotlib.pyplot" && \
+    cp -r /root/.cache /etc/skel/
+
 ## Setup Jupyter
 ## -------------
 RUN jupyter nbextension enable --py widgetsnbextension && \
@@ -160,10 +165,6 @@ RUN jupyter nbextension enable --py widgetsnbextension && \
     jupyter serverextension enable --py jupyterlab --system && \
     cp -r /root/.jupyter /etc/skel/
 
-## Import matplotlib the first time to build the font cache.
-# ENV XDG_CACHE_HOME /home/dockuser/.cache/
-# RUN . /app/venv/bin/activate && \
-#     python -c "import matplotlib.pyplot"
 
 ## Apply home folder patch to update pycharm's setting
 ## ===================================================
