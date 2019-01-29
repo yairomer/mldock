@@ -170,19 +170,6 @@ RUN jupyter nbextension enable --py widgetsnbextension && \
 RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64.deb
 RUN dpkg -i dumb-init_*.deb
 
-## Apply home folder patch to update pycharm's setting
-## ===================================================
-## Patch was created using the following commands:
-##     cd /home
-##     sudo mv dockuser dockuser_new
-##     cp -rp /app/backup/dockuser_home /home/dockuser
-##     diff -ruN dockuser/ dockuser_new/ > /tmp/pycharm_home_folder.patch
-COPY ./resources/pycharm_home_folder.patch /app/patches/pycharm_home_folder.patch
-
-RUN echo "#!/bin/bash\ncd /home\npatch -s -p0 < /app/patches/pycharm_home_folder.patch" | sudo tee /usr/local/bin/apply_pycharm_patch && \
-    sudo chmod a+x /usr/local/bin/apply_pycharm_patch && \
-    apply_pycharm_patch
-
 ## Set default environment variables
 ## =================================
 ENV NOTEBOOK_PORT="9900"
