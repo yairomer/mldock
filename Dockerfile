@@ -1,8 +1,6 @@
 FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
 # FROM nvidia/cuda:9.2-cudnn7-devel-ubuntu18.04
 
-USER root
-
 ## Install basic packages and useful utilities
 ## ===========================================
 ENV DEBIAN_FRONTEND noninteractive
@@ -103,25 +101,16 @@ RUN mkdir /opt/pycharm && \
     /usr/bin/python3 /opt/pycharm/helpers/pydev/setup_cython.py build_ext --inplace
 COPY ./resources/pycharm.bin /usr/local/bin/pycharm
 
-## Create dockuser user
-## ====================
-ARG DOCKUSER_UID=4283
-ARG DOCKUSER_GID=4283
-RUN groupadd -g $DOCKUSER_GID dockuser && \
-    useradd --system --create-home --shell /bin/bash -G sudo -g dockuser -u $DOCKUSER_UID dockuser && \
-    echo "dockuser ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/dockuser
-USER dockuser
-
 ## Setup app folder
 ## ================
-RUN sudo mkdir /app && \
-    sudo chown dockuser:dockuser /app
+RUN mkdir /app && \
+    chmod 777 /app
 
 ## Setup python environment
 ## ========================
-RUN sudo -H pip3 install -U virtualenv && \
-    virtualenv /app/venv --no-site-packages && \
-    . /app/venv/bin/activate && \
+RUN sudo -H pip3 install -U virtualenv==16.2.0 && \
+    virtualenv /app/venv && \
+    export PATH="/app/venv/bin:$PATH" && \
     pip3 install pip==18.1 && \
     hash -r pip && \
     pip3 install -U \
@@ -158,27 +147,24 @@ RUN sudo -H pip3 install -U virtualenv && \
         jupyter_contrib_nbextensions==0.5.0 \
         jupyterlab==0.4.0 \
         ipywidgets==7.4.2 \
+        && \
+    chmod a=u -R /app/venv
 ENV PATH="/app/venv/bin:$PATH"
 ENV MPLBACKEND=Agg
 
-RUN . /app/venv/bin/activate && \
-    jupyter nbextension enable --py widgetsnbextension && \
-    jupyter contrib nbextension install --user && \
+## Setup Jupyter
+## -------------
+RUN jupyter nbextension enable --py widgetsnbextension && \
+    jupyter contrib nbextension install --system && \
     jupyter nbextensions_configurator enable && \
-    jupyter serverextension enable --py jupyterlab --user
+    jupyter serverextension enable --py jupyterlab --system && \
+    cp -r /root/.jupyter /etc/skel/
 
 ## Import matplotlib the first time to build the font cache.
 # ENV XDG_CACHE_HOME /home/dockuser/.cache/
 # RUN . /app/venv/bin/activate && \
 #     python -c "import matplotlib.pyplot"
 
-## Backup dockuser's home folder
-## =============================
-RUN mkdir /app/backups && \
-    cp -rp /home/dockuser /app/backups/dockuser_home && \
-    echo "#!/bin/bash\nset -e\nsudo rsync -a --del /app/backups/dockuser_home/ /home/dockuser/" | sudo tee /usr/local/bin/reset_home_folder && \
-    sudo chmod a+x /usr/local/bin/reset_home_folder
-    
 ## Apply home folder patch to update pycharm's setting
 ## ===================================================
 ## Patch was created using the following commands:
@@ -192,10 +178,6 @@ RUN echo "#!/bin/bash\ncd /home\npatch -s -p0 < /app/patches/pycharm_home_folder
     sudo chmod a+x /usr/local/bin/apply_pycharm_patch && \
     apply_pycharm_patch
 
-## copy scripts
-## ============
-COPY /resources/run_server.sh /app/scripts/run_server.sh
-
 ## Set default environment variables
 ## =================================
 ENV NOTEBOOK_PORT="9900"
@@ -204,6 +186,25 @@ ENV NOTEBOOK_EXTRA_ARGS=""
 ENV JUPYTERLAB_PORT="9901"
 ENV JUPYTERLAB_ARGS="--notebook-dir=/ --ip=0.0.0.0 --NotebookApp.token='' --no-browser --allow-root"
 ENV JUPYTERLAB_EXTRA_ARGS=""
+## Copy scripts
+## ============
+COPY /resources/entrypoint.sh /app/scripts/entrypoint.sh
+COPY /resources/default_cmd.sh /app/scripts/default_cmd.sh
+RUN chmod a=u -R /app/scripts && \
+    echo "#!/bin/bash\nset -e\nexec /app/scripts/entrypoint.sh \"\$@\"" > /usr/local/bin/run && \
+    chmod a+x /usr/local/bin/run && \
+    echo "#!/bin/bash\nset -e\nif [[ -f \$HOME/mldock_default_cmd.sh ]]; then exec \$HOME/mldock_default_cmd.sh \"\$@\"; else exec /app/scripts/default_cmd.sh \"\$@\"; fi" > /usr/local/bin/default_cmd && \
+    chmod a+x /usr/local/bin/default_cmd && \
+    cp /app/scripts/default_cmd.sh /etc/skel/mldock_deafult_cmd.sh
 
-WORKDIR /home/dockuser/
-CMD ["/app/scripts/run_server.sh"]
+## Create dockuser user
+## ====================
+ARG DOCKUSER_UID=4283
+ARG DOCKUSER_GID=4283
+RUN groupadd -g $DOCKUSER_GID dockuser && \
+    useradd --system --create-home --home /home/dockuser --shell /bin/bash -G sudo -g dockuser -u $DOCKUSER_UID dockuser && \
+    mkdir /tmp/runtime-dockuser && \
+    chown dockuser:dockuser /tmp/runtime-dockuser && \
+    echo "dockuser ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/dockuser
+
+WORKDIR /root

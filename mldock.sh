@@ -7,7 +7,7 @@ app_name=mldock
 
 repository="omeryair/"
 image_name="mldock"
-version_name="latest"
+version_name="v0.2"
 
 container_name="mldock"
 
@@ -15,17 +15,17 @@ main_cli() {
     ## Parse args
     ## ==========
     usage() {
-        echo "A CLI tool for working with the mldok docker"
+        echo "A CLI tool for working with the mldock docker"
         echo ""
         echo "usage: $app_name  <command> [<options>]"
         echo "   or: $app_name -h         to print this help message."
         echo ""
         echo "Commands"
         echo "    add_to_bin              Create a link to the mldock.sh script in the /usr/bin folder (requiers sudo)."
-        echo "    build                   Build the image"
-        echo "    run                     Run a command inside a new container"
-        echo "    exec                    Execute a command inside an existing container"
-        echo "    stop                    Stop a running container"
+        echo "    build                   Build the image."
+        echo "    run                     Run a command inside a new container."
+        echo "    exec                    Execute a command inside an existing container."
+        echo "    stop                    Stop a running container."
         echo "Use $app_name <command> -h for specific help on each command."
     }
     if [ "$#" -eq 1 ] && [ "$1" ==  "-h" ]; then
@@ -58,19 +58,19 @@ main_cli() {
 
     case "$subcommand" in
         add_to_bin)
-            add_to_bin_cli $@
+            add_to_bin_cli "$@"
             ;;
         build)
-            build_cli $@
+            build_cli "$@"
             ;;
         run)
-            run_cli $@
+            run_cli "$@"
             ;;
         exec)
-            exec_cli $@
+            exec_cli "$@"
             ;;
         stop)
-            stop_cli $@
+            stop_cli "$@"
             ;;
         *)
             echo "Error: unknown command $subcommand" 1>&2
@@ -106,10 +106,10 @@ build_cli() {
     usage () {
         echo "Build the image"
         echo ""
-        echo "usage: $app_name $subcommand [<options>] version"
+        echo "usage: $app_name $subcommand [<options>]"
         echo "   or: $app_name $subcommand -h    to print this help message."
         echo "Options:"
-        echo "    version_name            The version name to use for the build image"
+        echo "    -v version_name         The version name to use for the build image. Default: \"$version_name\""
         echo "    -l                      Don't tag built image as latest"
     }
 
@@ -118,8 +118,11 @@ build_cli() {
         exit 0
     fi
 
-    while getopts "ac" opt; do
+    while getopts "v:l" opt; do
         case $opt in
+            v)
+                version_name=$OPTARG
+                ;;
             l)
                 tag_as_latest=false
                 ;;
@@ -137,13 +140,6 @@ build_cli() {
     done
     shift $((OPTIND -1))
 
-    if [ "$#" -lt 1 ]; then
-        echo "Error: Was expecting a version name" 1>&2
-        usage
-        exit 1
-    fi
-    version_name=$1; shift
-
     if [ "$#" -gt 0 ]; then
         echo "Error: Unexpected arguments: $@" 1>&2
         usage
@@ -154,26 +150,38 @@ build_cli() {
 }
 
 run_cli() {
-    connect_to_x_server=false
-    map_home=false
-    map_host=false
+    if xhost >& /dev/null ; then
+        ## Display exist
+        connect_to_x_server=true
+    else
+        ## No display
+        connect_to_x_server=false
+    fi
+    userstring="$(whoami):$(id -u):$(id -gn):$(id -g)"
+    map_host=true
     detach_container=false
-    dockuser_home=""
-    command_to_run=""
+    home_folder=""
+    command_to_run="default_cmd"
     extra_args=""
+    if nvidia-smi >& /dev/null ; then 
+        use_nvidia_runtime=true
+    else
+        use_nvidia_runtime=false
+    fi
     usage () {
         echo "Run a command inside a new container"
         echo ""
         echo "usage: $app_name $subcommand [<options>] [command]"
         echo "   or: $app_name $subcommand -h    to print this help message."
         echo "Options:"
-        echo "    -v version_name         The version name to use for the build image. default: \"$version_name\""
-        echo "    -c container_name       The name to for the created container. default: \"$container_name\""
-        echo "    -x                      Connect X-server"
-        echo "    -u                      Map the users home folder inside the container (at the same location)."
-        echo "    -r                      Map the root folder on the host machine to /host inside the container."
+        echo "    -v version_name         The version name to use for the build image. Default: \"$version_name\""
+        echo "    -c container_name       The name to for the created container. Default: \"$container_name\""
+        echo "    -f home_folder          A folder to map as the dockuser's home folder."
+        echo "    -s                      Run the command as root."
+        echo "    -u                      Run the command as dockuser user."
+        echo "    -x                      Don't connect X-server"
+        echo "    -r                      Don't map the root folder on the host machine to /host inside the container."
         echo "    -d                      Detach the container."
-        echo "    -n dockuser_home        A folder to map as the dockuser's home folder."
         echo "    -e extra_args           Extra arguments to pass to the docker run command."
     }
 
@@ -182,28 +190,31 @@ run_cli() {
         exit 0
     fi
 
-    while getopts "v:c:xurdn:e:" opt; do
+    while getopts "v:c:f:suxrde:" opt; do
         case $opt in
             v)
-                verasion_name=$OPTARG
+                version_name=$OPTARG
                 ;;
             c)
                 container_name=$OPTARG
                 ;;
-            x)
-                connect_to_x_server=true
+            f)
+                home_folder=$OPTARG
+                ;;
+            s)
+                userstring=""
                 ;;
             u)
-                map_home=true
+                userstring="dockuser:4283:dockuser:4283"
+                ;;
+            x)
+                connect_to_x_server=false
                 ;;
             r)
-                map_host=true
+                map_host=false
                 ;;
             d)
                 detach_container=true
-                ;;
-            n)
-                dockuser_home=$OPTARG
                 ;;
             e)
                 extra_args=$OPTARG
@@ -223,19 +234,14 @@ run_cli() {
     shift $((OPTIND -1))
 
     if [ "$#" -gt 0 ]; then
-        command_to_run=$1; shift
-    fi
-
-    if [ "$#" -gt 0 ]; then
-        echo "Error: Unexpected arguments: $@" 1>&2
-        usage
-        exit 1
+        command_to_run=( "$@" )
     fi
 
     run_command
 }
 
 exec_cli() {
+    username="$(whoami)"
     extra_args=""
     command_to_run="tmux attach-session -t session1"
     usage () {
@@ -245,6 +251,7 @@ exec_cli() {
         echo "   or: $app_name $subcommand -h    to print this help message."
         echo "Options:"
         echo "    -c container_name       The name to for the created container. default: \"$container_name\""
+        echo "    -u username             The user to use for running the command. default: \"$username\""
         echo "    -e extra_args           Extra arguments to pass to the docker exec command."
     }
 
@@ -253,10 +260,13 @@ exec_cli() {
         exit 0
     fi
 
-    while getopts "c:e:" opt; do
+    while getopts "c:u:e:" opt; do
         case $opt in
             c)
                 container_name=$OPTARG
+                ;;
+            u)
+                username=$OPTARG
                 ;;
             e)
                 extra_args=$OPTARG
@@ -276,13 +286,7 @@ exec_cli() {
     shift $((OPTIND -1))
 
     if [ "$#" -gt 0 ]; then
-        command_to_run=$1; shift
-    fi
-
-    if [ "$#" -gt 0 ]; then
-        echo "Error: Unexpected arguments: $@" 1>&2
-        usage
-        exit 1
+        command_to_run=( "$@" )
     fi
 
     exec_command
@@ -329,18 +333,14 @@ build_image() {
     fi
 }
 
-create_dockuser_home() {
-    echo "-> Creating the dockuser home folder at \"$dockuser_home\""
-
-    docker run --rm -v $dockuser_home/:/home/dockuser/ $repository$image_name:$version_name reset_home_folder
-    docker run --rm -v $dockuser_home/:/home/dockuser/ $repository$image_name:$version_name apply_pycharm_patch
-}
-
 run_command() {
-    echo "-> Running a command inside a new container"
+    # # if [ "user_host_user" = true ]; then
+    # if [ true = true ]; then
+    #     extra_args="-v /etc/passwd:/etc/passwd -u $(id -u ${USER}):$(id -g ${USER})"
+    # fi
 
     if [ "$connect_to_x_server" = true ]; then
-        xhost +local:root
+        xhost +local:root > /dev/null
         extra_args="$extra_args -e DISPLAY=${DISPLAY} -e MPLBACKEND=Qt5Agg -e QT_X11_NO_MITSHM=1 -v /tmp/.X11-unix:/tmp/.X11-unix"
     fi
 
@@ -348,15 +348,11 @@ run_command() {
         extra_args="$extra_args -v /:/host/"
     fi
 
-    if [ "$map_home" = true ]; then
-        extra_args="$extra_args -v $HOME/:$HOME/"
-    fi
+    if [[ ! -z $home_folder && ! -z $userstring ]]; then
+        userstringsplit=(${userstring//:/ })
+        new_username=${userstringsplit[0]}
 
-    if [ ! -z $dockuser_home ]; then
-        if [ ! -d $dockuser_home ]; then
-            create_dockuser_home
-        fi
-        extra_args="$extra_args -v $dockuser_home/:/home/dockuser/"
+        extra_args="$extra_args -v $home_folder:/home/$new_username/"
     fi
 
     if [ "$detach_container" = true ]; then
@@ -365,19 +361,24 @@ run_command() {
         extra_args="$extra_args -it"
     fi
 
+    if [ "$use_nvidia_runtime" = true ]; then
+        extra_args="$extra_args --runtime=nvidia"
+    fi
+
     docker run \
         --rm \
-        --runtime=nvidia \
         --network host \
         --name $container_name \
+        -e USERSTRING=$userstring \
         $extra_args \
-        $repository$image_name:$version_name $command_to_run
-
-        # -v ~/dockuser_home/:/home/dockuser/ \
+        $repository$image_name:$version_name "${command_to_run[@]}"
 }
 
 exec_command() {
-    echo "-> Executing command on a existing container"
+    if [[ ! -z $username ]]; then
+        extra_args="$extra_args -u $username"
+    fi
+
     docker exec -it $extra_args $container_name $command_to_run
 }
 
@@ -387,4 +388,4 @@ stop_container() {
     docker stop $container_name
 }
 
-main_cli $@
+main_cli "$@"
