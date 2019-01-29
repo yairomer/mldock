@@ -129,8 +129,15 @@ RUN sudo -H pip3 install -U virtualenv && \
         numpy==1.15.2 \
         scipy==1.1.0 \
         matplotlib==3.0.0 \
+        PyQt5==5.11.3 \
+        seaborn==0.9.0 \
+        plotly==3.5.0 \
+        bokeh==1.0.4 \
+        ggplot==0.11.5 \
+        altair==2.3.0 \
         pandas==0.23.4 \
         pyyaml==3.13 \
+        protobuf==3.6.1 \
         ipdb==0.11 \
         flake8==3.5.0 \
         cython==0.28.5 \
@@ -149,11 +156,11 @@ RUN sudo -H pip3 install -U virtualenv && \
         jupyter==1.0.0 \
         jupyterthemes==0.19.6 \
         jupyter_contrib_nbextensions==0.5.0 \
-        jupyterlab==0.4.0
+        jupyterlab==0.4.0 \
+        ipywidgets==7.4.2 \
 ENV PATH="/app/venv/bin:$PATH"
 ENV MPLBACKEND=Agg
 
-# RUN pip install seaborn, bokeh, protobuf, ipywidgets==7.4.2
 RUN . /app/venv/bin/activate && \
     jupyter nbextension enable --py widgetsnbextension && \
     jupyter contrib nbextension install --user && \
