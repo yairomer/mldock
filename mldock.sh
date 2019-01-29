@@ -21,7 +21,7 @@ main_cli() {
         echo "   or: $app_name -h         to print this help message."
         echo ""
         echo "Commands"
-        echo "    add_to_bin              Create a link to the mldock.sh script in the /usr/bin folder (requiers sudo)."
+        echo "    create_link             Create a link to the mldock.sh script in the /usr/bin folder (requiers sudo)."
         echo "    build                   Build the image."
         echo "    run                     Run a command inside a new container."
         echo "    exec                    Execute a command inside an existing container."
@@ -57,7 +57,7 @@ main_cli() {
     subcommand=$1; shift
 
     case "$subcommand" in
-        add_to_bin)
+        create_link)
             add_to_bin_cli "$@"
             ;;
         build)
