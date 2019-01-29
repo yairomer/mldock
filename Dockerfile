@@ -33,7 +33,6 @@ RUN apt-get update -y && \
         ssh \
         nano \
         vim \
-        neovim \
         emacs \
         git \
         tig \
@@ -70,6 +69,8 @@ RUN apt-get update -y && \
         texlive-xetex \
         graphviz \
         && \
+    apt-get install -y neovim && \
+    pip install pynvim==0.3.2 && \
     apt-get clean
 
     ## ToDo: increase memory limit to 10GB in: /etc/ImageMagick-6/policy.xml
