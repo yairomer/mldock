@@ -165,6 +165,10 @@ RUN jupyter nbextension enable --py widgetsnbextension && \
     jupyter serverextension enable --py jupyterlab --system && \
     cp -r /root/.jupyter /etc/skel/
 
+## Install dumb-init
+## =================
+RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64.deb
+RUN dpkg -i dumb-init_*.deb
 
 ## Apply home folder patch to update pycharm's setting
 ## ===================================================
@@ -209,3 +213,4 @@ RUN groupadd -g $DOCKUSER_GID dockuser && \
     echo "dockuser ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/dockuser
 
 WORKDIR /root
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "run"]
