@@ -17,6 +17,7 @@ RUN apt-get update -y && \
         ca-certificates \
         locales \
         fonts-liberation \
+        man \
         cmake \
         sudo \
         python3 \
