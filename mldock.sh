@@ -352,7 +352,8 @@ run_command() {
         userstringsplit=(${userstring//:/ })
         new_username=${userstringsplit[0]}
 
-        extra_args="$extra_args -v $home_folder:/home/$new_username/"
+        home_folder_abs=$(cd $home_folder && pwd)
+        extra_args="$extra_args -v $home_folder_abs:/home/$new_username/"
     fi
 
     if [ "$detach_container" = true ]; then
