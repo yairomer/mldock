@@ -170,14 +170,6 @@ RUN jupyter nbextension enable --py widgetsnbextension && \
 RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64.deb
 RUN dpkg -i dumb-init_*.deb
 
-## Set default environment variables
-## =================================
-ENV NOTEBOOK_PORT="9900"
-ENV NOTEBOOK_ARGS="--notebook-dir=/ --ip=0.0.0.0 --NotebookApp.token='' --no-browser --allow-root --ContentsManager.allow_hidden=True --FileContentsManager.allow_hidden=True"
-ENV NOTEBOOK_EXTRA_ARGS=""
-ENV JUPYTERLAB_PORT="9901"
-ENV JUPYTERLAB_ARGS="--notebook-dir=/ --ip=0.0.0.0 --NotebookApp.token='' --no-browser --allow-root"
-ENV JUPYTERLAB_EXTRA_ARGS=""
 ## Copy scripts
 ## ============
 COPY /resources/entrypoint.sh /app/scripts/entrypoint.sh

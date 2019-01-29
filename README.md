@@ -251,8 +251,8 @@ docker login
 
 - To build and push the docker run:
 ``` bash
-docker build -t omeryair/mkdock:{version_number} .
-docker push omeryair/mkdock:{version_number}
+docker build -t omeryair/mldock:{version_number} .
+docker push omeryair/mldock:{version_number}
 ```
 
 ### Docker Compose
