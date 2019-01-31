@@ -55,10 +55,12 @@ git clone https://github.com/yairomer/mldock.git {target_folder}
 Then move into the repository's folder (the folder containing the *mldock.sh* file) and run the following command 
 to define the *mldock* command shortcut:
 ```bash
-./mldock.sh create_link
+./mldock.sh setup
 ```
 You will be ask to enter your user password.
 (This command simply create a link to the *mldock.sh* file at */usr/bin/mldock*).
+
+Note: you can also copy the file to the */usr/bin* folder (instead of creating a link) using the *-c* flag: *./mldock.sh setup -c*.
 
 ## Usage
 From the output of *mldock -h*:

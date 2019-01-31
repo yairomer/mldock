@@ -21,7 +21,7 @@ main_cli() {
         echo "   or: $app_name -h         to print this help message."
         echo ""
         echo "Commands"
-        echo "    create_link             Create a link to the mldock.sh script in the /usr/bin folder (requiers sudo)."
+        echo "    setup                   Create a link or a copy of the $app_name.sh script in the /usr/bin folder (requiers sudo)."
         echo "    build                   Build the image."
         echo "    run                     Run a command inside a new container."
         echo "    exec                    Execute a command inside an existing container."
@@ -57,8 +57,8 @@ main_cli() {
     subcommand=$1; shift
 
     case "$subcommand" in
-        create_link)
-            add_to_bin_cli "$@"
+        setup)
+            setup_cli "$@"
             ;;
         build)
             build_cli "$@"
@@ -79,12 +79,15 @@ main_cli() {
     esac
 }
 
-add_to_bin_cli() {
+setup_cli() {
+    copy_script_file=false
     usage () {
-        echo "Create a link to the mldock.sh script in the /usr/bin folder (Requires sudo)."
+        echo "Create a link or a copy of the $app_name.sh script in the /usr/bin folder (requiers sudo)."
         echo ""
         echo "usage: $app_name $subcommand"
         echo "   or: $app_name $subcommand -h    to print this help message."
+        echo "Options:"
+        echo "    -c                      Copy the script file to /usr/bin. By default a link is created to the current file."
     }
 
     if [ "$#" -eq 1 ] && [ "$1" ==  "-h" ]; then
@@ -92,13 +95,32 @@ add_to_bin_cli() {
         exit 0
     fi
 
+    while getopts "c" opt; do
+        case $opt in
+            c)
+                copy_script_file=true
+                ;;
+            :)
+                echo "Error: -$OPTARG requires an argument" 1>&2
+                usage
+                exit 1
+                ;;
+            \?)
+                echo "Error: unknown option -$OPTARG" 1>&2
+                usage
+                exit 1
+                ;;
+        esac
+    done
+    shift $((OPTIND -1))
+
     if [ "$#" -gt 0 ]; then
         echo "Error: Unexpected arguments: $@" 1>&2
         usage
         exit 1
     fi
 
-    add_to_bin
+    run_setup
 }
 
 build_cli() {
@@ -314,19 +336,22 @@ stop_cli() {
     stop_container
 }
 
-mldock_dir="$( cd $( dirname "$(readlink ${BASH_SOURCE[0]})" ) && pwd )"
-# mldock_dir="$( cd $( dirname "${BASH_SOURCE[0]}" ) && pwd )"
+ref_dir="$( cd $( dirname "$(readlink -f ${BASH_SOURCE[0]})" ) && pwd )"
 
-add_to_bin() {
-    echo "-> Creating a symbolic link to $mldock_dir/mldoc.sh at /usr/bin/mldock"
-
-    sudo ln -sfT $mldock_dir/mldock.sh /usr/bin/mldock
+run_setup() {
+    if [ "$copy_script_file" = true ]; then 
+        echo "-> Creating a copy of $ref_dir/$app_name.sh at /usr/bin/$app_name"
+        sudo cp --remove-destination $ref_dir/$app_name.sh /usr/bin/$app_name
+    else
+        echo "-> Creating a symbolic link to $ref_dir$app_name.sh at /usr/bin/$app_name"
+        sudo ln -sfT $ref_dir/$app_name.sh /usr/bin/$app_name
+    fi
 }
 
 build_image() {
-    echo "-> Building image from $mldock_dir"
+    echo "-> Building image from $ref_dir"
 
-    docker build -t $repository$image_name:$version_name $mldock_dir
+    docker build -t $repository$image_name:$version_name $ref_dir
 
     if [ "$tag_as_latest" = true ]; then
         docker tag $repository$image_name:$version_name $repository$image_name:latest
