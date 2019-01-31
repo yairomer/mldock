@@ -56,6 +56,8 @@ main_cli() {
 
     subcommand=$1; shift
 
+    ref_dir="$( cd $( dirname "$(readlink -f ${BASH_SOURCE[0]})" ) && pwd )"
+
     case "$subcommand" in
         setup)
             setup_cli "$@"
@@ -168,6 +170,7 @@ build_cli() {
         exit 1
     fi
 
+    check_docker_for_sudo
     build_image
 }
 
@@ -259,6 +262,7 @@ run_cli() {
         command_to_run=( "$@" )
     fi
 
+    check_docker_for_sudo
     run_command
 }
 
@@ -311,6 +315,7 @@ exec_cli() {
         command_to_run=( "$@" )
     fi
 
+    check_docker_for_sudo
     exec_command
 }
 
@@ -333,10 +338,22 @@ stop_cli() {
         exit 1
     fi
 
+    check_docker_for_sudo
     stop_container
 }
 
-ref_dir="$( cd $( dirname "$(readlink -f ${BASH_SOURCE[0]})" ) && pwd )"
+check_docker_for_sudo() {
+    if ! docker ps >& /dev/null; then
+        if sudo docker ps >& /dev/null; then
+            docker_sudo_prefix="sudo "
+        else
+            echo "!! Error: was not able to run \"docker ps\""
+            exit
+        fi
+    else
+        docker_sudo_prefix="sudo "
+    fi
+}
 
 run_setup() {
     if [ "$copy_script_file" = true ]; then 
@@ -351,10 +368,10 @@ run_setup() {
 build_image() {
     echo "-> Building image from $ref_dir"
 
-    docker build -t $repository$image_name:$version_name $ref_dir
+    ${docker_sudo_prefix}docker build -t $repository$image_name:$version_name $ref_dir
 
     if [ "$tag_as_latest" = true ]; then
-        docker tag $repository$image_name:$version_name $repository$image_name:latest
+        ${docker_sudo_prefix}docker tag $repository$image_name:$version_name $repository$image_name:latest
     fi
 }
 
@@ -391,7 +408,7 @@ run_command() {
         extra_args="$extra_args --runtime=nvidia"
     fi
 
-    docker run \
+    ${docker_sudo_prefix}docker run \
         --rm \
         --network host \
         --name $container_name \
@@ -405,7 +422,7 @@ exec_command() {
         extra_args="$extra_args -u $username"
     fi
 
-    docker exec -it $extra_args $container_name $command_to_run
+    ${docker_sudo_prefix}docker exec -it $extra_args $container_name $command_to_run
 }
 
 
