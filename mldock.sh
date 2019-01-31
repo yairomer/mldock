@@ -394,8 +394,7 @@ run_command() {
         userstringsplit=(${userstring//:/ })
         new_username=${userstringsplit[0]}
 
-        home_folder_abs=$(cd $home_folder && pwd)
-        extra_args="$extra_args -v $home_folder_abs:/home/$new_username/"
+        extra_args="$extra_args -v $(readlink -f $home_folder):/home/$new_username/"
     fi
 
     if [ "$detach_container" = true ]; then
