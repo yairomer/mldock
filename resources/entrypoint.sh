@@ -69,7 +69,17 @@ if [ ! -z $USERSTRING ]; then
     fi
     # export XDG_RUNTIME_DIR=/tmp/runtime-$new_username
 
-    runuser -u $new_username "$@"
+    echo "$@"
+    if [ "$#"  -gt 0 ]; then
+        runuser -u $new_username "$@"
+    else
+        if [[ -f /home/$new_username/default_cmd.sh ]]; then
+            runuser -u $new_username /home/$new_username/default_cmd.sh
+        else
+            su $new_username
+        fi
+    fi
+
 else
     "$@"
 fi

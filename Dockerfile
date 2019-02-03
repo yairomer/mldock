@@ -172,14 +172,13 @@ RUN dpkg -i dumb-init_*.deb
 
 ## Copy scripts
 ## ============
-COPY /resources/entrypoint.sh /app/scripts/entrypoint.sh
-COPY /resources/default_cmd.sh /app/scripts/default_cmd.sh
-RUN chmod a=u -R /app/scripts && \
-    echo "#!/bin/bash\nset -e\nexec /app/scripts/entrypoint.sh \"\$@\"" > /usr/local/bin/run && \
-    chmod a+x /usr/local/bin/run && \
-    echo "#!/bin/bash\nset -e\nif [[ -f \$HOME/mldock_default_cmd.sh ]]; then exec \$HOME/mldock_default_cmd.sh \"\$@\"; else exec /app/scripts/default_cmd.sh \"\$@\"; fi" > /usr/local/bin/default_cmd && \
-    chmod a+x /usr/local/bin/default_cmd && \
-    cp /app/scripts/default_cmd.sh /etc/skel/mldock_deafult_cmd.sh
+RUN mkdir /app/bin && \
+    chmod a=u -R /app/bin
+ENV PATH="/app/bin:$PATH"
+COPY /resources/entrypoint.sh /app/bin/run
+COPY /resources/default_notebook.sh /app/bin/default_notebook
+COPY /resources/default_jupyterlab.sh /app/bin/default_jupyterlab
+COPY /resources/run_server.sh /app/bin/run_server
 
 ## Create dockuser user
 ## ====================

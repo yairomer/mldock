@@ -186,7 +186,7 @@ run_cli() {
     map_host=true
     detach_container=false
     home_folder=""
-    command_to_run="default_cmd"
+    command_to_run=""
     extra_args=""
     if nvidia-smi >& /dev/null ; then 
         use_nvidia_runtime=true
@@ -407,13 +407,23 @@ run_command() {
         extra_args="$extra_args --runtime=nvidia"
     fi
 
-    ${docker_sudo_prefix}docker run \
-        --rm \
-        --network host \
-        --name $container_name \
-        -e USERSTRING=$userstring \
-        $extra_args \
-        $repository$image_name:$version_name "${command_to_run[@]}"
+    if [[ ! -z "$command_to_run" ]]; then
+        ${docker_sudo_prefix}docker run \
+            --rm \
+            --network host \
+            --name $container_name \
+            -e USERSTRING=$userstring \
+            $extra_args \
+            $repository$image_name:$version_name "${command_to_run[@]}"
+    else
+        ${docker_sudo_prefix}docker run \
+            --rm \
+            --network host \
+            --name $container_name \
+            -e USERSTRING=$userstring \
+            $extra_args \
+            $repository$image_name:$version_name
+    fi
 }
 
 exec_command() {
