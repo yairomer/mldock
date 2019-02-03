@@ -180,6 +180,8 @@ COPY /resources/default_notebook.sh /app/bin/default_notebook
 COPY /resources/default_jupyterlab.sh /app/bin/default_jupyterlab
 COPY /resources/run_server.sh /app/bin/run_server
 
+RUN touch /etc/skel/.sudo_as_admin_successful
+
 ## Create dockuser user
 ## ====================
 ARG DOCKUSER_UID=4283
