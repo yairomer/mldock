@@ -132,7 +132,6 @@ RUN sudo -H pip3 install -U virtualenv==16.2.0 && \
         cython==0.28.5 \
         sympy==1.3 \
         nose==1.3.7 \
-        jupyter==1.0.0 \
         sphinx==1.8.1 \
         tqdm==4.27.0 \
         opencv-contrib-python==3.4.3.18 \
