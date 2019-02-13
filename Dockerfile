@@ -166,8 +166,10 @@ RUN jupyter nbextension enable --py widgetsnbextension && \
 
 ## Install dumb-init
 ## =================
-RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64.deb
-RUN dpkg -i dumb-init_*.deb
+RUN cd /tmp && \
+    wget -O dumb-init.deb https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64.deb && \
+    dpkg -i dumb-init.deb && \
+    rm dumb-init.deb
 
 ## Copy scripts
 ## ============
