@@ -175,6 +175,12 @@ RUN cd /app/ && \
     sed -i "s/^\(PATH=\"\)\(.*\)$/\1\/app\/dockvenv\/bin\/:\2/g" /etc/environment
 ENV PATH=/app/dockvenv/bin:$PATH
 
+## Node.js
+## =======
+RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g grunt-cli
+
 ## Install dumb-init
 ## =================
 RUN cd /tmp && \
