@@ -174,7 +174,8 @@ RUN cd /tmp && \
 ## Copy scripts
 ## ============
 RUN mkdir /app/bin && \
-    chmod a=u -R /app/bin
+    chmod a=u -R /app/bin && \
+    sed -i "s/^\(PATH=\"\)\(.*\)$/\1\/app\/bin\/:\2/g" /etc/environment
 ENV PATH="/app/bin:$PATH"
 COPY /resources/entrypoint.sh /app/bin/run
 COPY /resources/default_notebook.sh /app/bin/default_notebook
