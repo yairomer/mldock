@@ -325,12 +325,33 @@ stop_cli() {
         echo ""
         echo "usage: $app_name $subcommand"
         echo "   or: $app_name $subcommand -h    to print this help message."
+        echo "Options:"
+        echo "    -c container_name       The name to for the created container. default: \"$container_name\""
     }
 
     if [ "$#" -eq 1 ] && [ "$1" ==  "-h" ]; then
         usage
         exit 0
     fi
+
+    while getopts "c:u:e:" opt; do
+        case $opt in
+            c)
+                container_name=$OPTARG
+                ;;
+            :)
+                echo "Error: -$OPTARG requires an argument" 1>&2
+                usage
+                exit 1
+                ;;
+            \?)
+                echo "Error: unknown option -$OPTARG" 1>&2
+                usage
+                exit 1
+                ;;
+        esac
+    done
+    shift $((OPTIND -1))
 
     if [ "$#" -gt 0 ]; then
         echo "Error: Unexpected arguments: $@" 1>&2
