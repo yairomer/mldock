@@ -67,12 +67,10 @@ if [ ! -z $USERSTRING ]; then
     if [[ "$(pwd)" == "/root" ]]; then
         cd /home/$new_username
     fi
-    # export XDG_RUNTIME_DIR=/tmp/runtime-$new_username
 
-    echo "$@"
     ln -sfT /home/$new_username/dockvenv /app/dockvenv
     if [ "$#"  -gt 0 ]; then
-        runuser -u $new_username "$@"
+        runuser -u $new_username -- "$@"
     else
         if [[ -f /home/$new_username/default_cmd.sh ]]; then
             runuser -u $new_username /home/$new_username/default_cmd.sh
@@ -82,5 +80,9 @@ if [ ! -z $USERSTRING ]; then
     fi
 
 else
-    "$@"
+    if [ "$#"  -gt 0 ]; then
+        "$@"
+    else
+        bash
+    fi
 fi
