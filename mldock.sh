@@ -267,7 +267,6 @@ run_cli() {
 }
 
 exec_cli() {
-    username="$(whoami)"
     extra_args=""
     command_to_run="bash"
     usage () {
@@ -277,7 +276,6 @@ exec_cli() {
         echo "   or: $app_name $subcommand -h    to print this help message."
         echo "Options:"
         echo "    -c container_name       The name to for the created container. default: \"$container_name\""
-        echo "    -u username             The user to use for running the command. default: \"$username\""
         echo "    -e extra_args           Extra arguments to pass to the docker exec command."
     }
 
@@ -290,9 +288,6 @@ exec_cli() {
         case $opt in
             c)
                 container_name=$OPTARG
-                ;;
-            u)
-                username=$OPTARG
                 ;;
             e)
                 extra_args=$OPTARG
@@ -411,11 +406,15 @@ run_command() {
         extra_args="$extra_args -v /:/host/"
     fi
 
-    if [[ ! -z $home_folder && ! -z $userstring ]]; then
+    if [[ ! -z $userstring ]]; then
         userstringsplit=(${userstring//:/ })
         new_username=${userstringsplit[0]}
 
-        extra_args="$extra_args -v $(readlink -f $home_folder):/home/$new_username/"
+        extra_args="$extra_args -e USERSTRING=$userstring --label new_username=$new_username"
+
+        if [[ ! -z $home_folder ]]; then
+            extra_args="$extra_args -v $(readlink -f $home_folder):/home/$new_username/"
+        fi
     fi
 
     if [ "$detach_container" = true ]; then
@@ -433,7 +432,6 @@ run_command() {
             --rm \
             --network host \
             --name $container_name \
-            -e USERSTRING=$userstring \
             $extra_args \
             $repository$image_name:$version_name "${command_to_run[@]}"
     else
@@ -441,18 +439,18 @@ run_command() {
             --rm \
             --network host \
             --name $container_name \
-            -e USERSTRING=$userstring \
             $extra_args \
             $repository$image_name:$version_name
     fi
 }
 
 exec_command() {
-    if [[ ! -z $username ]]; then
-        extra_args="$extra_args -u $username"
+    new_username=$(docker inspect $container_name | jq -r '.[0]["Config"]["Labels"]["new_username"]')
+    if [[ "$username" != "null" ]]; then
+        extra_args="$extra_args -u $new_username -w /home/$new_username"
     fi
 
-    ${docker_sudo_prefix}docker exec -it $extra_args $container_name $command_to_run
+    ${docker_sudo_prefix}docker exec -it $extra_args $container_name  "${command_to_run[@]}"
 }
 
 
