@@ -139,7 +139,7 @@ RUN sudo -H pip3 install -U virtualenv==16.2.0 && \
         scikit-learn==0.20.0 \
         imageio==2.4.1 \
         torchvision==0.2.1 \
-        tensorflow==1.12.0 \
+        tensorflow-gpu==1.12.0 \
         tensorboardX==1.4 \
         jupyter==1.0.0 \
         jupyterthemes==0.19.6 \
