@@ -70,6 +70,7 @@ if [ ! -z $USERSTRING ]; then
     # export XDG_RUNTIME_DIR=/tmp/runtime-$new_username
 
     echo "$@"
+    ln -sfT /home/$new_username/dockvenv /app/dockvenv
     if [ "$#"  -gt 0 ]; then
         runuser -u $new_username "$@"
     else

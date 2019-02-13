@@ -108,12 +108,10 @@ RUN mkdir /app && \
 
 ## Setup python environment
 ## ========================
-RUN sudo -H pip3 install -U virtualenv==16.2.0 && \
-    virtualenv /app/venv && \
-    export PATH="/app/venv/bin:$PATH" && \
-    pip3 install pip==18.1 && \
+RUN pip3 install pip==18.1 && \
     hash -r pip && \
     pip3 install -U \
+        virtualenv==16.2.0 \
         ipython==7.0.1 \
         numpy==1.15.2 \
         scipy==1.1.0 \
@@ -147,8 +145,7 @@ RUN sudo -H pip3 install -U virtualenv==16.2.0 && \
         jupyterlab==0.4.0 \
         ipywidgets==7.4.2 \
         && \
-    chmod a=u -R /app/venv
-ENV PATH="/app/venv/bin:$PATH"
+        rm -r /root/.cache/pip
 ENV MPLBACKEND=Agg
 
 ## Import matplotlib the first time to build the font cache.
@@ -163,6 +160,19 @@ RUN jupyter nbextension enable --py widgetsnbextension && \
     jupyter nbextensions_configurator enable && \
     jupyter serverextension enable --py jupyterlab --system && \
     cp -r /root/.jupyter /etc/skel/
+
+## Create virtual environment
+## ==========================
+RUN cd /app/ && \
+    virtualenv --system-site-packages dockvenv && \
+    virtualenv --relocatable dockvenv && \
+    grep -rlnw --null /usr/local/bin/ -e '#!/usr/bin/python3' | xargs -0r cp -t /app/dockvenv/bin/ && \
+    sed -i "s/#"'!'"\/usr\/bin\/python3/#"'!'"\/usr\/bin\/env python/g" /app/dockvenv/bin/* && \
+    mv /app/dockvenv /root/ && \
+    ln -sfT /root/dockvenv /app/dockvenv && \
+    cp -rp /root/dockvenv /etc/skel/ && \
+    sed -i "s/^\(PATH=\"\)\(.*\)$/\1\/app\/dockvenv\/bin\/:\2/g" /etc/environment
+ENV PATH=/app/dockvenv/bin:$PATH
 
 ## Install dumb-init
 ## =================
