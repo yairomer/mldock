@@ -42,6 +42,7 @@ RUN apt-get update -y && \
         silversearcher-ag \
         ctags \
         cscope \
+        jq \
         libblas-dev \
         liblapack-dev \
         gfortran \
