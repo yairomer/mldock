@@ -269,7 +269,7 @@ run_cli() {
 exec_cli() {
     username="$(whoami)"
     extra_args=""
-    command_to_run="tmux attach-session -t session1"
+    command_to_run="bash"
     usage () {
         echo "Execute a command inside an existing container"
         echo ""
