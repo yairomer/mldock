@@ -41,7 +41,6 @@ For a more detailed documentation then this readme see the docs folder.
 - [Docker](https://www.docker.com/)
 - NVIDIA drivers of version 384.81 or higher
 - [NVIDIA-Docker](https://github.com/NVIDIA/nvidia-docker)
-- [jq](https://stedolan.github.io/jq/)
 
 For setting these dependencies see the "*Installing dependencies*" section in documentation.
 

@@ -445,8 +445,8 @@ run_command() {
 }
 
 exec_command() {
-    new_username=$(docker inspect $container_name | jq -r '.[0]["Config"]["Labels"]["new_username"]')
-    if [[ "$username" != "null" ]]; then
+    new_username=$(${docker_sudo_prefix}docker inspect $container_name | sed -n 's/^[[:space:]]*"new_username":[[:space:]]*"\(.*\)"$/\1/p')
+    if [[ ! -z "$new_username" ]]; then
         extra_args="$extra_args -u $new_username -w /home/$new_username"
     fi
 
