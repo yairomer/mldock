@@ -456,7 +456,7 @@ exec_command() {
 
 stop_container() {
     echo "-> Stopping the container"
-    docker stop $container_name
+    ${docker_sudo_prefix}docker stop $container_name
 }
 
 main_cli "$@"
