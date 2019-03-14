@@ -410,7 +410,7 @@ run_command() {
         userstringsplit=(${userstring//:/ })
         new_username=${userstringsplit[0]}
 
-        extra_args="$extra_args -e USERSTRING=$userstring --label new_username=$new_username"
+        extra_args="$extra_args -e \"USERSTRING=$userstring\" --label new_username=$new_username"
 
         if [[ ! -z $home_folder ]]; then
             extra_args="$extra_args -v $(readlink -f $home_folder):/home/$new_username/"
@@ -428,23 +428,25 @@ run_command() {
     fi
 
     if [[ ! -z "$command_to_run" ]]; then
-        ${docker_sudo_prefix}docker run \
-            --rm \
-            --network host \
-            --name $container_name \
-            $extra_args \
-            $repository$image_name:$version_name "${command_to_run[@]}"
+        eval "${docker_sudo_prefix}docker run" \
+            "--rm" \
+            "--network host" \
+            "--name $container_name" \
+            "$extra_args" \
+            "$repository$image_name:$version_name \"\${command_to_run[@]}\""
     else
-        ${docker_sudo_prefix}docker run \
-            --rm \
-            --network host \
-            --name $container_name \
-            $extra_args \
-            $repository$image_name:$version_name
+        eval "${docker_sudo_prefix}docker run" \
+            "--rm" \
+            "--network host" \
+            "--name $container_name" \
+            "$extra_args" \
+            "$repository$image_name:$version_name"
     fi
 }
 
 exec_command() {
+    # new_username=$(${docker_sudo_prefix}docker inspect $container_name | jq -r '.[0]["Config"]["Labels"]["new_username"]')
+    # if [[ "$new_username" != "null" ]]; then
     new_username=$(${docker_sudo_prefix}docker inspect $container_name | sed -n 's/^[[:space:]]*"new_username":[[:space:]]*"\(.*\)"$/\1/p')
     if [[ ! -z "$new_username" ]]; then
         extra_args="$extra_args -u $new_username -w /home/$new_username"
