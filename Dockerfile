@@ -30,6 +30,7 @@ RUN apt-get update -y && \
         curl \
         rsync \
         ssh \
+        bc \
         nano \
         vim \
         emacs \
@@ -86,6 +87,7 @@ RUN mkdir /var/run/sshd && \
     sed 's/^#\?PasswordAuthentication .*$/PasswordAuthentication yes/g' -i /etc/ssh/sshd_config && \
     sed 's/^Port .*$/Port 9022/g' -i /etc/ssh/sshd_config && \
     sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+
 ## VSCode
 ## ======
 RUN cd /tmp && \
@@ -220,6 +222,10 @@ RUN groupadd -g $DOCKUSER_GID dockuser && \
     mkdir /tmp/runtime-dockuser && \
     chown dockuser:dockuser /tmp/runtime-dockuser && \
     echo "dockuser ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/dockuser
+
+ENV LANG en_US.UTF-8  
+ENV LANGUAGE en_US:en  
+ENV LC_ALL en_US.UTF-8  
 
 WORKDIR /root
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "run"]
