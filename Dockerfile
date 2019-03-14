@@ -163,10 +163,13 @@ RUN python3 -c "import matplotlib.pyplot" && \
 
 ## Setup Jupyter
 ## -------------
-RUN jupyter nbextension enable --py widgetsnbextension && \
+RUN pip install six==1.11 && \
+    jupyter nbextension enable --py widgetsnbextension && \
     jupyter contrib nbextension install --system && \
     jupyter nbextensions_configurator enable && \
     jupyter serverextension enable --py jupyterlab --system && \
+    pip install RISE && \
+    jupyter-nbextension install rise --py --sys-prefix --system && \
     cp -r /root/.jupyter /etc/skel/
 
 ## Create virtual environment
