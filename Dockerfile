@@ -18,6 +18,7 @@ RUN apt-get update -y && \
         man \
         cmake \
         sudo \
+        openssh-server \
         python3 \
         python3-dev \
         python3-pip \
@@ -79,6 +80,12 @@ RUN apt-get update -y && \
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
 
+## SSH server
+## ==========
+RUN mkdir /var/run/sshd && \
+    sed 's/^#\?PasswordAuthentication .*$/PasswordAuthentication yes/g' -i /etc/ssh/sshd_config && \
+    sed 's/^Port .*$/Port 9022/g' -i /etc/ssh/sshd_config && \
+    sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
 ## VSCode
 ## ======
 RUN cd /tmp && \
