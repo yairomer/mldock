@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
+# set -x  # Debug: be verbose
+# PS4='$LINENO: '  # Add lines number to debug output
 
 ## Main CLI function
 ## =================
@@ -24,6 +26,7 @@ main_cli() {
         echo "    setup                   Create a link or a copy of the $app_name.sh script in the /usr/bin folder (requiers sudo)."
         echo "    build                   Build the image."
         echo "    run                     Run a command inside a new container."
+        echo "    run_remote              Run a command inside a new container on a remote machine."
         echo "    exec                    Execute a command inside an existing container."
         echo "    stop                    Stop a running container."
         echo "Use $app_name <command> -h for specific help on each command."
@@ -67,6 +70,9 @@ main_cli() {
             ;;
         run)
             run_cli "$@"
+            ;;
+        run_remote)
+            run_remote_cli "$@"
             ;;
         exec)
             exec_cli "$@"
@@ -275,7 +281,121 @@ run_cli() {
     fi
 
     check_docker_for_sudo
+    gen_command
     run_command
+}
+
+run_remote_cli() {
+    if xhost >& /dev/null ; then
+        ## Display exist
+        connect_to_x_server=true
+    else
+        ## No display
+        connect_to_x_server=false
+    fi
+    if [[ "$(whoami)" == "root" ]]; then
+        userstring="dockuser:4283:dockuser:4283"
+    else
+        userstring="$(whoami):$(id -u):$(id -gn):$(id -g)"
+    fi
+    map_host=true
+    detach_container=false
+    home_folder=""
+    command_to_run=""
+    extra_args=()
+    if nvidia-smi >& /dev/null ; then 
+        use_nvidia_runtime=true
+    else
+        use_nvidia_runtime=false
+    fi
+    usage () {
+        echo "Run a command inside a new container on a remote machine"
+        echo ""
+        echo "usage: $app_name $subcommand $remote_ip [<options>] [command]"
+        echo "   or: $app_name $subcommand -h    to print this help message."
+        echo "Options:"
+        echo "    -v version_name         The version name to use for the build image. Default: \"$version_name\""
+        echo "    -c container_name       The name to for the created container. Default: \"$container_name\""
+        echo "    -f home_folder          A folder to map as the dockuser's home folder."
+        echo "    -s                      Run the command as root."
+        echo "    -u                      Run the command as dockuser user."
+        echo "    -i username             Run the command as *username*."
+        echo "    -x                      Don't connect X-server"
+        echo "    -r                      Don't map the root folder on the host machine to /host inside the container."
+        echo "    -d                      Detach the container."
+        echo "    -e extra_args           Extra arguments to pass to the docker run command."
+    }
+
+    if [ "$#" -eq 1 ] && [ "$1" ==  "-h" ]; then
+        usage
+        exit 0
+    fi
+
+    if [ "$#" -lt 1 ]; then
+        echo "Error: Was expecting a remote ip" 1>&2
+        usage
+        exit 1
+    fi
+
+    remote_ip=$1; shift
+
+    while getopts "v:c:f:sui:xrde:" opt; do
+        case $opt in
+            v)
+                version_name=$OPTARG
+                ;;
+            c)
+                container_name=$OPTARG
+                ;;
+            f)
+                home_folder=$OPTARG
+                ;;
+            s)
+                userstring=""
+                ;;
+            u)
+                userstring="dockuser:4283:dockuser:4283"
+                ;;
+            i)
+                username=$OPTARG
+                userstring="$username:$(id -u $username):$(id -gn $username):$(id -g $username)"
+                ;;
+            x)
+                connect_to_x_server=false
+                ;;
+            r)
+                map_host=false
+                ;;
+            d)
+                detach_container=true
+                ;;
+            e)
+                IFS=$'\n' extra_args=( $(xargs -n1 printf "%s\n" <<< "$OPTARG") )
+                unset IFS
+                ;;
+            :)
+                echo "Error: -$OPTARG requires an argument" 1>&2
+                usage
+                exit 1
+                ;;
+            \?)
+                echo "Error: unknown option -$OPTARG" 1>&2
+                usage
+                exit 1
+                ;;
+        esac
+    done
+    shift $((OPTIND -1))
+
+    userstring="${userstring// /-}"
+
+    if [ "$#" -gt 0 ]; then
+        command_to_run=( "$@" )
+    fi
+
+    check_docker_for_sudo
+    gen_command
+    run_remote_command
 }
 
 exec_cli() {
@@ -404,7 +524,7 @@ build_image() {
     fi
 }
 
-run_command() {
+gen_command() {
     # # if [ "user_host_user" = true ]; then
     # if [ true = true ]; then
     #     extra_args="-v /etc/passwd:/etc/passwd -u $(id -u ${USER}):$(id -g ${USER})"
@@ -426,10 +546,15 @@ run_command() {
         extra_args+=("-e" "USERSTRING=$userstring" "--label" "new_username=$new_username")
 
         if [[ ! -z $home_folder ]]; then
+            home_folder_full=$(readlink -f $home_folder || echo "") >/dev/null 2>&1
+            if [[ ! -z $home_folder_full ]]; then
+                home_folder=home_folder_full
+            fi
+
             if [[ "$new_username" == "root" ]]; then
-                extra_args+=("-v" "$(readlink -f $home_folder):/root/")
+                extra_args+=("-v" "$home_folder:/root/")
             else
-                extra_args+=("-v" "$(readlink -f $home_folder):/home/$new_username/")
+                extra_args+=("-v" "$home_folder:/home/$new_username/")
             fi
         fi
     fi
@@ -457,9 +582,18 @@ run_command() {
     if [[ ! -z "$command_to_run" ]]; then
         cmd+=("$repository$image_name:$version_name" "${command_to_run[@]}")
     fi
+}
+
+run_command() {
     echo "Running: ${cmd[@]}"
     echo ""
     "${cmd[@]}"
+}
+
+run_remote_command() {
+    echo "Running on $remote_ip: ${cmd[@]}"
+    echo ""
+    ssh $remote_ip -t "${cmd[@]}"
 }
 
 exec_command() {
