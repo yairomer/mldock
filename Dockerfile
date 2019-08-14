@@ -206,6 +206,11 @@ RUN cd /tmp && \
     dpkg -i dumb-init.deb && \
     rm dumb-init.deb
 
+## Create container config file
+## ============================
+RUN mkdir /tmp/dock_config && \
+    chmod a+wrx /tmp/dock_config
+
 ## Copy scripts
 ## ============
 RUN mkdir /app/bin && \

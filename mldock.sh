@@ -543,7 +543,7 @@ gen_command() {
         userstringsplit=(${userstring//:/ })
         new_username=${userstringsplit[0]}
 
-        extra_args+=("-e" "USERSTRING=$userstring" "--label" "new_username=$new_username")
+        extra_args+=("-e" "USERSTRING=$userstring")
 
         if [[ ! -z $home_folder ]]; then
             home_folder_full=$(readlink -f $home_folder || echo "") >/dev/null 2>&1
@@ -597,9 +597,7 @@ run_remote_command() {
 }
 
 exec_command() {
-    # new_username=$(${docker_sudo_prefix}docker inspect $container_name | jq -r '.[0]["Config"]["Labels"]["new_username"]')
-    # if [[ "$new_username" != "null" ]]; then
-    new_username=$(${docker_sudo_prefix}docker inspect $container_name | sed -n 's/^[[:space:]]*"new_username":[[:space:]]*"\(.*\)"$/\1/p')
+    new_username=$(${docker_sudo_prefix}docker exec $container_name cat /tmp/dock_config/username)
     if [[ ! -z "$new_username" ]]; then
         extra_args="$extra_args -u $new_username -w /home/$new_username"
     fi

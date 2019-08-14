@@ -17,6 +17,8 @@ if [ ! -z "$USERSTRING" ]; then
     new_groupname="${USERSTRINGSPLIT[2]}"
     new_gid=${USERSTRINGSPLIT[3]}
 
+    echo "$new_username" > /tmp/dock_config/username
+
     if [[ ! $new_username == "root" ]]; then
         if ! id $new_uid > /dev/null 2>&1; then
             ## User does not exist. Create user
