@@ -197,6 +197,7 @@ run_cli() {
     detach_container=false
     home_folder=""
     command_to_run=""
+    use_tmux=false
     extra_args=()
     if nvidia-smi >& /dev/null ; then 
         use_nvidia_runtime=true
@@ -218,6 +219,7 @@ run_cli() {
         echo "    -x                      Don't connect X-server"
         echo "    -r                      Don't map the root folder on the host machine to /host inside the container."
         echo "    -d                      Detach the container."
+        echo "    -t                      Run in at TMUX session."
         echo "    -e extra_args           Extra arguments to pass to the docker run command."
     }
 
@@ -226,7 +228,7 @@ run_cli() {
         exit 0
     fi
 
-    while getopts "v:c:f:sui:xrde:" opt; do
+    while getopts "v:c:f:sui:xrdte:" opt; do
         case $opt in
             v)
                 version_name=$OPTARG
@@ -255,6 +257,9 @@ run_cli() {
                 ;;
             d)
                 detach_container=true
+                ;;
+            t)
+                use_tmux=true
                 ;;
             e)
                 IFS=$'\n' extra_args=( $(xargs -n1 printf "%s\n" <<< "$OPTARG") )
@@ -302,6 +307,7 @@ run_remote_cli() {
     detach_container=false
     home_folder=""
     command_to_run=""
+    use_tmux=false
     extra_args=()
     if nvidia-smi >& /dev/null ; then 
         use_nvidia_runtime=true
@@ -323,6 +329,7 @@ run_remote_cli() {
         echo "    -x                      Don't connect X-server"
         echo "    -r                      Don't map the root folder on the host machine to /host inside the container."
         echo "    -d                      Detach the container."
+        echo "    -t                      Run in at TMUX session."
         echo "    -e extra_args           Extra arguments to pass to the docker run command."
     }
 
@@ -339,7 +346,7 @@ run_remote_cli() {
 
     remote_ip=$1; shift
 
-    while getopts "v:c:f:sui:xrde:" opt; do
+    while getopts "v:c:f:sui:xrdte:" opt; do
         case $opt in
             v)
                 version_name=$OPTARG
@@ -368,6 +375,9 @@ run_remote_cli() {
                 ;;
             d)
                 detach_container=true
+                ;;
+            t)
+                use_tmux=true
                 ;;
             e)
                 IFS=$'\n' extra_args=( $(xargs -n1 printf "%s\n" <<< "$OPTARG") )
@@ -559,6 +569,10 @@ gen_command() {
         fi
     fi
 
+    if [ "$use_tmux" = true ]; then
+        detach_tmux="$detach_container"
+        detach_container=true
+    fi
     if [ "$detach_container" = true ]; then
         extra_args+=("-d")
     else
@@ -568,32 +582,40 @@ gen_command() {
     if [ "$use_nvidia_runtime" = true ]; then
         extra_args+=("--runtime=nvidia")
     fi
-
-    if [ ! -z "$docker_sudo_prefix" ]; then
-        cmd=("sudo")
-    else
-        cmd=()
-    fi
     cmd+=("docker" "run" \
          "--rm" \
          "--network" "host" \
          "--name" "$container_name")
     cmd+=( "${extra_args[@]}" )
+    cmd+=("$repository$image_name:$version_name")
+    if [ "$use_tmux" = true ]; then
+        cmd+=("run_in_detached_tmux")
+    fi
     if [[ ! -z "$command_to_run" ]]; then
-        cmd+=("$repository$image_name:$version_name" "${command_to_run[@]}")
+        cmd+=("${command_to_run[@]}")
     fi
 }
 
 run_command() {
-    echo "Running: ${cmd[@]}"
+    echo "Running: ${docker_sudo_prefix}${cmd[@]}"
     echo ""
-    "${cmd[@]}"
+    "${docker_sudo_prefix}${cmd[@]}"
+
+    if [ "$use_tmux" = true ] && [[ "$detach_tmux" = false ]]; then
+        new_username=$(${docker_sudo_prefix}docker exec $container_name cat /tmp/dock_config/username)
+        ${docker_sudo_prefix}docker exec -it -u $new_username $container_name tmux a
+    fi
 }
 
 run_remote_command() {
     echo "Running on $remote_ip: ${cmd[@]}"
     echo ""
     ssh $remote_ip -t "${cmd[@]}"
+
+    if [ "$use_tmux" = true ] && [[ "$detach_tmux" = false ]]; then
+        new_username=$(ssh $remote_ip -t docker exec $container_name cat /tmp/dock_config/username)
+        ssh $remote_ip -t docker exec -it -u $new_username $container_name tmux a
+    fi
 }
 
 exec_command() {

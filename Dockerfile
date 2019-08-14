@@ -221,6 +221,7 @@ COPY /resources/switch_user_run.sh /app/bin/switch_user_run
 COPY /resources/default_notebook.sh /app/bin/default_notebook
 COPY /resources/default_jupyterlab.sh /app/bin/default_jupyterlab
 COPY /resources/run_server.sh /app/bin/run_server
+COPY /resources/run_in_detached_tmux.sh /app/bin/run_in_detached_tmux
 
 RUN touch /etc/skel/.sudo_as_admin_successful
 
