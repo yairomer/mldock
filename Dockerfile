@@ -212,7 +212,7 @@ RUN mkdir /app/bin && \
     chmod a=u -R /app/bin && \
     sed -i "s/^\(PATH=\"\)\(.*\)$/\1\/app\/bin\/:\2/g" /etc/environment
 ENV PATH="/app/bin:$PATH"
-COPY /resources/entrypoint.sh /app/bin/run
+COPY /resources/switch_user_run.sh /app/bin/switch_user_run
 COPY /resources/default_notebook.sh /app/bin/default_notebook
 COPY /resources/default_jupyterlab.sh /app/bin/default_jupyterlab
 COPY /resources/run_server.sh /app/bin/run_server
@@ -234,4 +234,4 @@ ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8  
 
 WORKDIR /root
-ENTRYPOINT ["/usr/bin/dumb-init", "--", "run"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "switch_user_run"]
