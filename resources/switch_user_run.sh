@@ -3,6 +3,12 @@ set -e
 
 trap 'shutdown' TERM INT  ## This line makes shutting down the container faster
 
+if [ "$#"  -gt 0 ]; then
+    cmd=("$@")
+else
+    cmd=("bash")
+fi
+
 if [ ! -z "$USERSTRING" ]; then
     IFS=':' read -ra USERSTRINGSPLIT <<< "$USERSTRING"
 
@@ -72,7 +78,7 @@ if [ ! -z "$USERSTRING" ]; then
 
         ln -sfT /home/$new_username/dockvenv /app/dockvenv
         if [ "$#"  -gt 0 ]; then
-            runuser -u $new_username -- "$@"
+            runuser -u $new_username -- "${cmd[@]}"
         else
             if [[ -f /home/$new_username/default_cmd.sh ]]; then
                 runuser -u $new_username /home/$new_username/default_cmd.sh
@@ -81,11 +87,6 @@ if [ ! -z "$USERSTRING" ]; then
             fi
         fi
     fi
-
 else
-    if [ "$#"  -gt 0 ]; then
-        "$@"
-    else
-        bash
-    fi
+    "$cmd"
 fi
