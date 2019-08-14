@@ -24,6 +24,7 @@ RUN apt-get update -y && \
         python \
         python-dev \
         python-pip \
+        pylint \
         sshfs \
         wget \
         curl \
@@ -68,6 +69,8 @@ RUN apt-get update -y && \
         texlive-latex-extra \
         texlive-xetex \
         graphviz \
+        libncurses5-dev \
+        libncursesw5-dev \
         && \
     apt-get install -y neovim && \
     pip install pynvim==0.3.2 && \
