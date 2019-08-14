@@ -120,7 +120,7 @@ RUN mkdir /app && \
 
 ## Setup python environment
 ## ========================
-RUN pip3 install pip==18.1 && \
+RUN pip3 install pip==19.2.2 && \
     hash -r pip && \
     pip3 install -U \
         virtualenv==16.2.0 \
@@ -131,6 +131,7 @@ RUN pip3 install pip==18.1 && \
         PyQt5==5.11.3 \
         seaborn==0.9.0 \
         plotly==3.5.0 \
+        dash==1.0.2 \
         bokeh==1.0.4 \
         ggplot==0.11.5 \
         altair==2.3.0 \
@@ -149,6 +150,7 @@ RUN pip3 install pip==18.1 && \
         scikit-learn==0.20.0 \
         imageio==2.4.1 \
         torchvision==0.2.1 \
+        torchsummary==1.5.1 \
         tensorflow-gpu==1.12.0 \
         tensorboardX==1.4 \
         jupyter==1.0.0 \
@@ -156,6 +158,8 @@ RUN pip3 install pip==18.1 && \
         jupyter_contrib_nbextensions==0.5.0 \
         jupyterlab==0.4.0 \
         ipywidgets==7.4.2 \
+        visdom==0.1.8.8 \
+        line_profiler==2.1.2 \
         && \
         rm -r /root/.cache/pip
 ENV MPLBACKEND=Agg
