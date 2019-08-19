@@ -78,6 +78,17 @@ RUN apt-get update -y && \
 
     ## ToDo: increase memory limit to 10GB in: /etc/ImageMagick-6/policy.xml
 
+## Install nvtop
+## =============
+RUN git clone https://github.com/Syllo/nvtop.git /tmp/nvtop && \
+    mkdir /tmp/nvtop/build && \
+    cd /tmp/nvtop/build && \
+    cmake .. || : && \
+    make || : && \
+    make install || : && \
+    cd / && \
+    rm -r /tmp/nvtop
+
 ## Set locale
 ## ==========
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
