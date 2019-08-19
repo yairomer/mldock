@@ -558,7 +558,7 @@ gen_command() {
         if [[ ! -z $home_folder ]]; then
             home_folder_full=$(readlink -f $home_folder || echo "") >/dev/null 2>&1
             if [[ ! -z $home_folder_full ]]; then
-                home_folder=home_folder_full
+                home_folder=$home_folder_full
             fi
 
             if [[ "$new_username" == "root" ]]; then
