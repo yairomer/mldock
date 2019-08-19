@@ -43,7 +43,7 @@ main_cli() {
                 exit 0
                 ;;
             \? )
-                echo "Error: Invalid Option: -$OPTARG" 1>&2
+                echo "Error: Invalid Option: -$opt" 1>&2
                 usage
                 exit 1
                 ;;
@@ -109,12 +109,12 @@ setup_cli() {
                 copy_script_file=true
                 ;;
             :)
-                echo "Error: -$OPTARG requires an argument" 1>&2
+                echo "Error: -$opt requires an argument" 1>&2
                 usage
                 exit 1
                 ;;
             \?)
-                echo "Error: unknown option -$OPTARG" 1>&2
+                echo "Error: unknown option -$opt" 1>&2
                 usage
                 exit 1
                 ;;
@@ -157,12 +157,12 @@ build_cli() {
                 tag_as_latest=false
                 ;;
             :)
-                echo "Error: -$OPTARG requires an argument" 1>&2
+                echo "Error: -$opt requires an argument" 1>&2
                 usage
                 exit 1
                 ;;
             \?)
-                echo "Error: unknown option -$OPTARG" 1>&2
+                echo "Error: unknown option -$opt" 1>&2
                 usage
                 exit 1
                 ;;
@@ -266,12 +266,12 @@ run_cli() {
                 unset IFS
                 ;;
             :)
-                echo "Error: -$OPTARG requires an argument" 1>&2
+                echo "Error: -$opt requires an argument" 1>&2
                 usage
                 exit 1
                 ;;
             \?)
-                echo "Error: unknown option -$OPTARG" 1>&2
+                echo "Error: unknown option -$opt" 1>&2
                 usage
                 exit 1
                 ;;
@@ -384,12 +384,12 @@ run_remote_cli() {
                 unset IFS
                 ;;
             :)
-                echo "Error: -$OPTARG requires an argument" 1>&2
+                echo "Error: -$opt requires an argument" 1>&2
                 usage
                 exit 1
                 ;;
             \?)
-                echo "Error: unknown option -$OPTARG" 1>&2
+                echo "Error: unknown option -$opt" 1>&2
                 usage
                 exit 1
                 ;;
@@ -441,7 +441,7 @@ exec_cli() {
                 exit 1
                 ;;
             \?)
-                echo "Error: unknown option -$OPTARG" 1>&2
+                echo "Error: unknown option -$opt" 1>&2
                 usage
                 exit 1
                 ;;
@@ -478,12 +478,12 @@ stop_cli() {
                 container_name=$OPTARG
                 ;;
             :)
-                echo "Error: -$OPTARG requires an argument" 1>&2
+                echo "Error: -$opt requires an argument" 1>&2
                 usage
                 exit 1
                 ;;
             \?)
-                echo "Error: unknown option -$OPTARG" 1>&2
+                echo "Error: unknown option -$opt" 1>&2
                 usage
                 exit 1
                 ;;
