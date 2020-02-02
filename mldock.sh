@@ -28,6 +28,7 @@ main_cli() {
         echo "    run                     Run a command inside a new container."
         echo "    run_remote              Run a command inside a new container on a remote machine."
         echo "    exec                    Execute a command inside an existing container."
+        echo "    exec_remote             Execute a command inside an existing container on a remote machine."
         echo "    stop                    Stop a running container."
         echo "Use $app_name <command> -h for specific help on each command."
     }
@@ -76,6 +77,9 @@ main_cli() {
             ;;
         exec)
             exec_cli "$@"
+            ;;
+        exec_remote)
+            exec_remote_cli "$@"
             ;;
         stop)
             stop_cli "$@"
@@ -201,6 +205,11 @@ run_cli() {
     extra_args=()
     if nvidia-smi >& /dev/null ; then 
         use_nvidia_runtime=true
+        if docker run --rm --runtime=nvidia busybox echo test >& /dev/null ; then 
+            use_gpus_all=false
+        else
+            use_gpus_all=true
+        fi
     else
         use_nvidia_runtime=false
     fi
@@ -309,15 +318,10 @@ run_remote_cli() {
     command_to_run=""
     use_tmux=false
     extra_args=()
-    if nvidia-smi >& /dev/null ; then 
-        use_nvidia_runtime=true
-    else
-        use_nvidia_runtime=false
-    fi
     usage () {
         echo "Run a command inside a new container on a remote machine"
         echo ""
-        echo "usage: $app_name $subcommand $remote_ip [<options>] [command]"
+        echo "usage: $app_name $subcommand remote_ip [<options>] [command]"
         echo "   or: $app_name $subcommand -h    to print this help message."
         echo "Options:"
         echo "    -v version_name         The version name to use for the build image. Default: \"$version_name\""
@@ -403,6 +407,16 @@ run_remote_cli() {
         command_to_run=( "$@" )
     fi
 
+    if ssh $remote_ip nvidia-smi >& /dev/null ; then 
+        use_nvidia_runtime=true
+        if ssh $remote_ip docker run --rm --runtime=nvidia busybox echo test >& /dev/null ; then 
+            use_gpus_all=false
+        else
+            use_gpus_all=true
+        fi
+    else
+        use_nvidia_runtime=false
+    fi
     check_docker_for_sudo
     gen_command
     run_remote_command
@@ -455,6 +469,55 @@ exec_cli() {
 
     check_docker_for_sudo
     exec_command
+}
+
+exec_remote_cli() {
+    extra_args=()
+    usage () {
+        echo "Execute a command inside an existing container"
+        echo ""
+        echo "usage: $app_name $subcommand remote_ip [<options>] [command_to_run]"
+        echo "   or: $app_name $subcommand -h    to print this help message."
+        echo "Options:"
+        echo "    -c container_name       The name to for the created container. default: \"$container_name\""
+        echo "    -e extra_args           Extra arguments to pass to the docker exec command."
+    }
+
+    if [ "$#" -eq 1 ] && [ "$1" ==  "-h" ]; then
+        usage
+        exit 0
+    fi
+
+    remote_ip=$1; shift
+
+    while getopts "c:u:e:" opt; do
+        case $opt in
+            c)
+                container_name=$OPTARG
+                ;;
+            e)
+                IFS=$'\n' extra_args=( $(xargs -n1 printf "%s\n" <<< "$OPTARG") )
+                unset IFS
+                ;;
+            :)
+                echo "Error: -$OPTARG requires an argument" 1>&2
+                usage
+                exit 1
+                ;;
+            \?)
+                echo "Error: unknown option -$opt" 1>&2
+                usage
+                exit 1
+                ;;
+        esac
+    done
+    shift $((OPTIND -1))
+
+    if [ "$#" -gt 0 ]; then
+        command_to_run=( "$@" )
+    fi
+
+    exec_remote_command
 }
 
 stop_cli() {
@@ -580,7 +643,11 @@ gen_command() {
     fi
 
     if [ "$use_nvidia_runtime" = true ]; then
-        extra_args+=("--runtime=nvidia")
+        if [ "$use_gpus_all" = true ]; then
+            extra_args+=("--gpus=all")
+        else
+            extra_args+=("--runtime=nvidia")
+        fi
     fi
     cmd+=("docker" "run" \
          "--rm" \
@@ -625,6 +692,21 @@ exec_command() {
     fi
 
     ${docker_sudo_prefix}docker exec -it $extra_args $container_name  "${command_to_run[@]}"
+}
+
+
+exec_remote_command() {
+    new_username=$(ssh -o LogLevel=QUIET $remote_ip -t "docker exec $container_name cat /tmp/dock_config/username" | tr -d '\r')
+
+    cmd+=("docker" "exec" \
+         "-it")
+    if [[ ! -z "$new_username" ]]; then
+        extra_args+=("-u" "$new_username" "-w" "/home/$new_username")
+    fi
+    cmd+=( "${extra_args[@]}" )
+    cmd+=("$container_name")
+    cmd+=("${command_to_run[@]}")
+    run_remote_command
 }
 
 
