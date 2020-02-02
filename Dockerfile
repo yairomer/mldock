@@ -98,7 +98,7 @@ RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
 ## ==========
 RUN mkdir /var/run/sshd && \
     sed 's/^#\?PasswordAuthentication .*$/PasswordAuthentication yes/g' -i /etc/ssh/sshd_config && \
-    sed 's/^Port .*$/Port 9022/g' -i /etc/ssh/sshd_config && \
+    sed 's/^#\?Port .*$/Port 9022/g' -i /etc/ssh/sshd_config && \
     sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
 
 ## VSCode
@@ -162,7 +162,7 @@ RUN pip3 install pip==19.2.2 && \
         imageio==2.4.1 \
         torchvision==0.2.1 \
         torchsummary==1.5.1 \
-        tensorflow-gpu==1.12.0 \
+        tensorflow-gpu==1.14.0 \
         tensorboardX==1.4 \
         jupyter==1.0.0 \
         jupyterthemes==0.19.6 \
