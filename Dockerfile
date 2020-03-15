@@ -3,7 +3,7 @@ FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
 ## Install basic packages and useful utilities
 ## ===========================================
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update -y && \
+RUN apt-get update -y  && \
     apt-get upgrade -y && \
     apt-get install -y software-properties-common && \
     add-apt-repository ppa:neovim-ppa/stable && \
@@ -131,46 +131,49 @@ RUN mkdir /app && \
 
 ## Setup python environment
 ## ========================
-RUN pip3 install pip==19.2.2 && \
+RUN pip3 install pip==20.0.2 && \
     hash -r pip && \
     pip3 install -U \
-        virtualenv==16.2.0 \
-        ipython==7.0.1 \
-        numpy==1.15.2 \
-        scipy==1.1.0 \
-        matplotlib==3.0.0 \
-        PyQt5==5.11.3 \
-        seaborn==0.9.0 \
-        plotly==3.5.0 \
-        dash==1.0.2 \
-        bokeh==1.0.4 \
+        virtualenv==20.0.10 \
+        ipython==7.13.0 \
+        numpy==1.18.1 \
+        scipy==1.4.0 \
+        cvxpy==1.0.28 \
+        matplotlib==3.2.0 \
+        PyQt5==5.14.1 \
+        seaborn==0.10.0 \
+        plotly==4.5.3 \
+        dash==1.9.1 \
+        bokeh==2.0.0 \
         ggplot==0.11.5 \
-        altair==2.3.0 \
-        pandas==0.23.4 \
-        pyyaml==3.13 \
-        protobuf==3.6.1 \
-        ipdb==0.11 \
-        flake8==3.5.0 \
-        cython==0.28.5 \
-        sympy==1.3 \
+        altair==4.0.1 \
+        pandas==1.0.1 \
+        pyyaml==5.3 \
+        protobuf==3.11.3 \
+        ipdb==0.13.2 \
+        flake8==3.7.9 \
+        cython==0.29.15 \
+        sympy==1.5.1 \
         nose==1.3.7 \
         sphinx==1.8.1 \
-        tqdm==4.27.0 \
-        opencv-contrib-python==3.4.3.18 \
-        scikit-image==0.14.1 \
-        scikit-learn==0.20.0 \
-        imageio==2.4.1 \
-        torchvision==0.2.1 \
+        tqdm==4.43.0 \
+        opencv-contrib-python==4.2.0.32 \
+        scikit-image==0.16.2 \
+        scikit-learn==0.22.2 \
+        imageio==2.8.0 \
+        torchvision==0.4.0 \
+        torchviz==0.0.1 \
+        Pillow==6.1 \
         torchsummary==1.5.1 \
-        tensorflow-gpu==1.14.0 \
-        tensorboardX==1.4 \
+        tensorflow-gpu==2.0.0 \
+        tensorboardX==2.0 \
         jupyter==1.0.0 \
-        jupyterthemes==0.19.6 \
-        jupyter_contrib_nbextensions==0.5.0 \
-        jupyterlab==0.4.0 \
-        ipywidgets==7.4.2 \
-        visdom==0.1.8.8 \
-        line_profiler==2.1.2 \
+        jupyterthemes==0.20.0 \
+        jupyter_contrib_nbextensions==0.5.1 \
+        jupyterlab==2.0.1 \
+        ipywidgets==7.5.1 \
+        visdom==0.1.8.9 \
+        line_profiler==3.0.2 \
         && \
         rm -r /root/.cache/pip
 ENV MPLBACKEND=Agg
@@ -191,11 +194,23 @@ RUN pip install six==1.11 && \
     jupyter-nbextension install rise --py --sys-prefix --system && \
     cp -r /root/.jupyter /etc/skel/
 
+## Install Orca (for exporting Plotly figures to images)
+## =====================================================
+RUN apt install -y xvfb libgconf2-4 && \
+    wget https://github.com/plotly/orca/releases/download/v1.1.1/orca-1.1.1-x86_64.AppImage -P /tmp && \
+    chmod 777 /tmp/orca-1.1.1-x86_64.AppImage && \
+    cd /tmp && \
+    ./orca-1.1.1-x86_64.AppImage --appimage-extract && \
+    mv /tmp/squashfs-root /opt/squashfs-root && \
+    chmod -R 777 /opt/squashfs-root && \
+    printf '#!/bin/bash \nxvfb-run --auto-servernum --server-args "-screen 0 640x480x24" /opt/squashfs-root/app/orca "$@"' > /usr/bin/orca && \
+    chmod 777 /usr/bin/orca && \
+    rm -r /tmp/orca-1.1.1-x86_64.AppImage
+
 ## Create virtual environment
 ## ==========================
 RUN cd /app/ && \
     virtualenv --system-site-packages dockvenv && \
-    virtualenv --relocatable dockvenv && \
     grep -rlnw --null /usr/local/bin/ -e '#!/usr/bin/python3' | xargs -0r cp -t /app/dockvenv/bin/ && \
     sed -i "s/#"'!'"\/usr\/bin\/python3/#"'!'"\/usr\/bin\/env python/g" /app/dockvenv/bin/* && \
     mv /app/dockvenv /root/ && \
@@ -203,6 +218,7 @@ RUN cd /app/ && \
     cp -rp /root/dockvenv /etc/skel/ && \
     sed -i "s/^\(PATH=\"\)\(.*\)$/\1\/app\/dockvenv\/bin\/:\2/g" /etc/environment
 ENV PATH=/app/dockvenv/bin:$PATH
+    # virtualenv dockvenv && \
 
 ## Node.js
 ## =======

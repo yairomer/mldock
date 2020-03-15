@@ -9,7 +9,7 @@ app_name=mldock
 
 repository="omeryair/"
 image_name="mldock"
-version_name="v0.4"
+version_name="v0.5"
 
 container_name="mldock_$USER"
 
