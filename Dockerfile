@@ -1,10 +1,9 @@
-FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
-# FROM nvidia/cuda:9.2-cudnn7-devel-ubuntu18.04
+FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
 
 ## Install basic packages and useful utilities
 ## ===========================================
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update -y && \
+RUN apt-get update -y  && \
     apt-get upgrade -y && \
     apt-get install -y software-properties-common && \
     add-apt-repository ppa:neovim-ppa/stable && \
@@ -25,6 +24,7 @@ RUN apt-get update -y && \
         python \
         python-dev \
         python-pip \
+        pylint \
         sshfs \
         wget \
         curl \
@@ -69,12 +69,25 @@ RUN apt-get update -y && \
         texlive-latex-extra \
         texlive-xetex \
         graphviz \
+        libncurses5-dev \
+        libncursesw5-dev \
         && \
     apt-get install -y neovim && \
     pip install pynvim==0.3.2 && \
     apt-get clean
 
     ## ToDo: increase memory limit to 10GB in: /etc/ImageMagick-6/policy.xml
+
+## Install nvtop
+## =============
+RUN git clone https://github.com/Syllo/nvtop.git /tmp/nvtop && \
+    mkdir /tmp/nvtop/build && \
+    cd /tmp/nvtop/build && \
+    cmake .. || : && \
+    make || : && \
+    make install || : && \
+    cd / && \
+    rm -r /tmp/nvtop
 
 ## Set locale
 ## ==========
@@ -85,7 +98,7 @@ RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
 ## ==========
 RUN mkdir /var/run/sshd && \
     sed 's/^#\?PasswordAuthentication .*$/PasswordAuthentication yes/g' -i /etc/ssh/sshd_config && \
-    sed 's/^Port .*$/Port 9022/g' -i /etc/ssh/sshd_config && \
+    sed 's/^#\?Port .*$/Port 9022/g' -i /etc/ssh/sshd_config && \
     sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
 
 ## VSCode
@@ -118,42 +131,49 @@ RUN mkdir /app && \
 
 ## Setup python environment
 ## ========================
-RUN pip3 install pip==18.1 && \
+RUN pip3 install pip==20.0.2 && \
     hash -r pip && \
     pip3 install -U \
-        virtualenv==16.2.0 \
-        ipython==7.0.1 \
-        numpy==1.15.2 \
-        scipy==1.1.0 \
-        matplotlib==3.0.0 \
-        PyQt5==5.11.3 \
-        seaborn==0.9.0 \
-        plotly==3.5.0 \
-        bokeh==1.0.4 \
+        virtualenv==20.0.10 \
+        ipython==7.13.0 \
+        numpy==1.18.1 \
+        scipy==1.4.0 \
+        cvxpy==1.0.28 \
+        matplotlib==3.2.0 \
+        PyQt5==5.14.1 \
+        seaborn==0.10.0 \
+        plotly==4.5.3 \
+        dash==1.9.1 \
+        bokeh==2.0.0 \
         ggplot==0.11.5 \
-        altair==2.3.0 \
-        pandas==0.23.4 \
-        pyyaml==3.13 \
-        protobuf==3.6.1 \
-        ipdb==0.11 \
-        flake8==3.5.0 \
-        cython==0.28.5 \
-        sympy==1.3 \
+        altair==4.0.1 \
+        pandas==1.0.1 \
+        pyyaml==5.3 \
+        protobuf==3.11.3 \
+        ipdb==0.13.2 \
+        flake8==3.7.9 \
+        cython==0.29.15 \
+        sympy==1.5.1 \
         nose==1.3.7 \
         sphinx==1.8.1 \
-        tqdm==4.27.0 \
-        opencv-contrib-python==3.4.3.18 \
-        scikit-image==0.14.1 \
-        scikit-learn==0.20.0 \
-        imageio==2.4.1 \
-        torchvision==0.2.1 \
-        tensorflow-gpu==1.12.0 \
-        tensorboardX==1.4 \
+        tqdm==4.43.0 \
+        opencv-contrib-python==4.2.0.32 \
+        scikit-image==0.16.2 \
+        scikit-learn==0.22.2 \
+        imageio==2.8.0 \
+        torchvision==0.4.0 \
+        torchviz==0.0.1 \
+        Pillow==6.1 \
+        torchsummary==1.5.1 \
+        tensorflow-gpu==2.0.0 \
+        tensorboardX==2.0 \
         jupyter==1.0.0 \
-        jupyterthemes==0.19.6 \
-        jupyter_contrib_nbextensions==0.5.0 \
-        jupyterlab==0.4.0 \
-        ipywidgets==7.4.2 \
+        jupyterthemes==0.20.0 \
+        jupyter_contrib_nbextensions==0.5.1 \
+        jupyterlab==2.0.1 \
+        ipywidgets==7.5.1 \
+        visdom==0.1.8.9 \
+        line_profiler==3.0.2 \
         && \
         rm -r /root/.cache/pip
 ENV MPLBACKEND=Agg
@@ -174,11 +194,23 @@ RUN pip install six==1.11 && \
     jupyter-nbextension install rise --py --sys-prefix --system && \
     cp -r /root/.jupyter /etc/skel/
 
+## Install Orca (for exporting Plotly figures to images)
+## =====================================================
+RUN apt install -y xvfb libgconf2-4 && \
+    wget https://github.com/plotly/orca/releases/download/v1.1.1/orca-1.1.1-x86_64.AppImage -P /tmp && \
+    chmod 777 /tmp/orca-1.1.1-x86_64.AppImage && \
+    cd /tmp && \
+    ./orca-1.1.1-x86_64.AppImage --appimage-extract && \
+    mv /tmp/squashfs-root /opt/squashfs-root && \
+    chmod -R 777 /opt/squashfs-root && \
+    printf '#!/bin/bash \nxvfb-run --auto-servernum --server-args "-screen 0 640x480x24" /opt/squashfs-root/app/orca "$@"' > /usr/bin/orca && \
+    chmod 777 /usr/bin/orca && \
+    rm -r /tmp/orca-1.1.1-x86_64.AppImage
+
 ## Create virtual environment
 ## ==========================
 RUN cd /app/ && \
     virtualenv --system-site-packages dockvenv && \
-    virtualenv --relocatable dockvenv && \
     grep -rlnw --null /usr/local/bin/ -e '#!/usr/bin/python3' | xargs -0r cp -t /app/dockvenv/bin/ && \
     sed -i "s/#"'!'"\/usr\/bin\/python3/#"'!'"\/usr\/bin\/env python/g" /app/dockvenv/bin/* && \
     mv /app/dockvenv /root/ && \
@@ -186,6 +218,7 @@ RUN cd /app/ && \
     cp -rp /root/dockvenv /etc/skel/ && \
     sed -i "s/^\(PATH=\"\)\(.*\)$/\1\/app\/dockvenv\/bin\/:\2/g" /etc/environment
 ENV PATH=/app/dockvenv/bin:$PATH
+    # virtualenv dockvenv && \
 
 ## Node.js
 ## =======
@@ -200,16 +233,22 @@ RUN cd /tmp && \
     dpkg -i dumb-init.deb && \
     rm dumb-init.deb
 
+## Create container config file
+## ============================
+RUN mkdir /tmp/dock_config && \
+    chmod a+wrx /tmp/dock_config
+
 ## Copy scripts
 ## ============
 RUN mkdir /app/bin && \
     chmod a=u -R /app/bin && \
     sed -i "s/^\(PATH=\"\)\(.*\)$/\1\/app\/bin\/:\2/g" /etc/environment
 ENV PATH="/app/bin:$PATH"
-COPY /resources/entrypoint.sh /app/bin/run
+COPY /resources/switch_user_run.sh /app/bin/switch_user_run
 COPY /resources/default_notebook.sh /app/bin/default_notebook
 COPY /resources/default_jupyterlab.sh /app/bin/default_jupyterlab
 COPY /resources/run_server.sh /app/bin/run_server
+COPY /resources/run_in_detached_tmux.sh /app/bin/run_in_detached_tmux
 
 RUN touch /etc/skel/.sudo_as_admin_successful
 
@@ -228,4 +267,4 @@ ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8  
 
 WORKDIR /root
-ENTRYPOINT ["/usr/bin/dumb-init", "--", "run"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "switch_user_run"]

@@ -151,5 +151,4 @@ For convenient the docker image comes with a few preconfigured scripts (which ar
 - *default-jupyterlab*: Opens Jupyter Lab at the root directory using port 9901 (without a password nor token)
 - *run_server*: Starts Jupyter Notebook and Lab using a tmux session.
 
-
-The Enjoy ;)
+Enjoy ;)
