@@ -38,9 +38,9 @@ using the -x flag when running commands.
 For a more detailed documentation then this readme see the docs folder.
 
 ## Dependencies
-- Docker
+- [Docker](https://www.docker.com/)
 - NVIDIA drivers of version 384.81 or higher
-- NVIDIA-Docker
+- [NVIDIA-Docker](https://github.com/NVIDIA/nvidia-docker)
 
 For setting these dependencies see the "*Installing dependencies*" section in documentation.
 
@@ -82,7 +82,7 @@ Use mldock <command> -h for specific help on each command.
 ## Examples
 To simply start a disposable container running a simple bash shell, run:
 ```bash
-mldock run bash
+mldock run
 ```
 
 ---
@@ -91,25 +91,32 @@ In most cases you would probably want to keep our home folder consistent between
 *-f {folder to use as home folder}* flag. If a non existing or empty folder is given, then it is initialized with
 some initial home folder content. 
 
-For example, to run PyCharm inside a container using the folder *~/mldock_home* as a permanent home folder run:
-```bash
-mldock run -f ~/mldock_home pycharm
-```
-You can even use your regular home folder for inside the container.
-
----
-
-The image come with a default command which starts Jupyter notebook and JupyterLab (in a tmux session). To
-run it simply run the container without any command:
+For example, to run a container using the folder *~/mldock_home* as a permanent home folder run:
 ```bash
 mldock run -f ~/mldock_home
 ```
+You can even use your regular home folder for the home folder inside the container.
 
 ---
 
-To run the container it in the background use the detach flag *-d*.
+You can run any command directly with going through bash by adding it to the run command. For example, to 
+run PyCharm inside a container run:
 ```bash
-mldock run -d -f ~/mldock_home
+mldock run -f ~/mldock_home pycharm
+```
+
+---
+
+To open run the default Jupyter Notebook server using the preconfigured command (see below), run:
+```bash
+mldock run -f ~/mldock_home default_notebook
+```
+
+---
+
+You can run a container it in the background by using the detach flag *-d*.
+```bash
+mldock run -d -f ~/mldock_home default_notebook
 ```
 
 And to stop a detach container run:
@@ -119,10 +126,8 @@ mldock stop
 
 ---
 
-You can also run command on an existing container (for example a container with is currently running a notebook
-server) using the *exec* command.
-
-For example, to open VSCode in an existing container run:
+You can also run a command on an existing container using the *exec* command.  For example, to open VSCode 
+in an existing container, run:
 ```bash
 mldock exec code
 ```
@@ -136,8 +141,14 @@ the *-s* to use *root* user.
 machine so that you could easily share file between the container and the host machine. To disable this mapping
 use the *-r* flag.
 
-- You can override the default command be placing a script file  in the folder which is used as the
-container's home folder, and naming it *mldock_default_cmd.sh*.
+- You can set a default run command (instead of opening bash) by placing a script file named *deafult_cmd.sh*
+in your home folder (the one used be the container).
 
+
+## Preconfigured commands
+For convenient the docker image comes with a few preconfigured scripts (which are place in the */app/bin* folder):
+- *default-notebook*: Opens Jupyter Notebook at the root directory using port 9900 (without a password nor token)
+- *default-jupyterlab*: Opens Jupyter Lab at the root directory using port 9901 (without a password nor token)
+- *run_server*: Starts Jupyter Notebook and Lab using a tmux session.
 
 Enjoy ;)
