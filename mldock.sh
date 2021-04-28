@@ -20,9 +20,6 @@ main_cli() {
         echo "A CLI tool for working with the $app_name docker"
         echo ""
         echo "usage: $app_name  <command> [<options>]"
-        echo "   or: $app_name -h         to print this help message."
-        echo ""
-        echo "Commands"
         echo "    setup                   Create a link or a copy of the $app_name.sh script in the /usr/bin folder (requiers sudo)."
         echo "    build                   Build the image."
         echo "    run                     Run a command inside a new container."
@@ -200,6 +197,7 @@ run_cli() {
     map_host=true
     detach_container=false
     home_folder=""
+    working_folder=""
     command_to_run=""
     use_tmux=false
     extra_args=()
@@ -222,6 +220,7 @@ run_cli() {
         echo "    -v version_name         The version name to use for the build image. Default: \"$version_name\""
         echo "    -c container_name       The name to for the created container. Default: \"$container_name\""
         echo "    -f home_folder          A folder to map as the dockuser's home folder."
+        echo "    -w working_folder       The working folder."
         echo "    -s                      Run the command as root."
         echo "    -u                      Run the command as dockuser user."
         echo "    -i username             Run the command as *username*."
@@ -237,7 +236,7 @@ run_cli() {
         exit 0
     fi
 
-    while getopts "v:c:f:sui:xrdte:" opt; do
+    while getopts "v:c:f:w:sui:xrdte:" opt; do
         case $opt in
             v)
                 version_name=$OPTARG
@@ -247,6 +246,9 @@ run_cli() {
                 ;;
             f)
                 home_folder=$OPTARG
+                ;;
+            w)
+                working_folder=$OPTARG
                 ;;
             s)
                 userstring=""
@@ -315,6 +317,7 @@ run_remote_cli() {
     map_host=true
     detach_container=false
     home_folder=""
+    working_folder=""
     command_to_run=""
     use_tmux=false
     extra_args=()
@@ -327,6 +330,7 @@ run_remote_cli() {
         echo "    -v version_name         The version name to use for the build image. Default: \"$version_name\""
         echo "    -c container_name       The name to for the created container. Default: \"$container_name\""
         echo "    -f home_folder          A folder to map as the dockuser's home folder."
+        echo "    -w working_folder       The working folder."
         echo "    -s                      Run the command as root."
         echo "    -u                      Run the command as dockuser user."
         echo "    -i username             Run the command as *username*."
@@ -350,7 +354,7 @@ run_remote_cli() {
 
     remote_ip=$1; shift
 
-    while getopts "v:c:f:sui:xrdte:" opt; do
+    while getopts "v:c:f:w:sui:xrdte:" opt; do
         case $opt in
             v)
                 version_name=$OPTARG
@@ -360,6 +364,9 @@ run_remote_cli() {
                 ;;
             f)
                 home_folder=$OPTARG
+                ;;
+            w)
+                working_folder=$OPTARG
                 ;;
             s)
                 userstring=""
@@ -619,19 +626,26 @@ gen_command() {
         extra_args+=("-e" "USERSTRING=$userstring")
 
         if [[ ! -z $home_folder ]]; then
-            home_folder_full=$(readlink -f $home_folder || echo "") >/dev/null 2>&1
-            if [[ ! -z $home_folder_full ]]; then
-                home_folder=$home_folder_full
-            fi
-
-            if [[ "$new_username" == "root" ]]; then
-                extra_args+=("-v" "$home_folder:/root/")
+            if [[ $home_folder == *":"* ]]; then
+                extra_args+=("-e" "SSHFSDIRS=\"$home_folder;/home/$new_username/\"")
             else
-                extra_args+=("-v" "$home_folder:/home/$new_username/")
+                home_folder_full=$(readlink -f $home_folder || echo "") >/dev/null 2>&1
+                if [[ ! -z $home_folder_full ]]; then
+                    home_folder=$home_folder_full
+                fi
+
+                if [[ "$new_username" == "root" ]]; then
+                    extra_args+=("-v" "$home_folder:/root/")
+                else
+                    extra_args+=("-v" "$home_folder:/home/$new_username/")
+                fi
             fi
         fi
     fi
 
+    if [[ ! -z $working_folder ]]; then
+        extra_args+=("-e" "WORKINGFOLDER=$working_folder")
+    fi
     if [ "$use_tmux" = true ]; then
         detach_tmux="$detach_container"
         detach_container=true
@@ -650,7 +664,9 @@ gen_command() {
         fi
     fi
     cmd+=("docker" "run" \
+         "-e" "SSHPORT=9022" \
          "--rm" \
+         "--privileged" \
          "--network" "host" \
          "--name" "$container_name")
     cmd+=( "${extra_args[@]}" )

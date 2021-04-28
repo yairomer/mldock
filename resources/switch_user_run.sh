@@ -9,6 +9,23 @@ else
     cmd=("bash")
 fi
 
+if [ ! -z "$SSHPORT" ]; then
+    sed 's/^#\?Port .*$/Port '"$SSHPORT"'/g' -i /etc/ssh/sshd_config
+    /etc/init.d/ssh restart > /dev/null 2>&1
+fi
+
+if [ ! -z "$SSHFSDIRS" ]; then
+    IFS=',' read -ra SSHFSDIRS <<< "$SSHFSDIRS"
+    for map in "${SSHFSDIRS[@]}"; do
+        IFS=';' read -ra map <<< "$map"
+        if [[ ! -d "${map[1]}" ]]; then
+            mkdir -p ${map[1]}
+            chmod 777 ${map[1]}
+        fi
+        sshfs -o allow_other -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${map[0]} ${map[1]}
+    done
+fi
+
 if [ ! -z "$USERSTRING" ]; then
     IFS=':' read -ra USERSTRINGSPLIT <<< "$USERSTRING"
 
@@ -78,8 +95,12 @@ if [ ! -z "$USERSTRING" ]; then
             cd /home/$new_username
         fi
 
+        if [ ! -z "$WORKINGFOLDER" ]; then
+            cd $WORKINGFOLDER
+        fi
+
         ln -sfT /home/$new_username/dockvenv /app/dockvenv
-        if [ "$#"  -gt 0 ]; then
+        if [ "$#" -gt 0 ]; then
             runuser -u $new_username -- "${cmd[@]}"
         else
             if [[ -f /home/$new_username/default_cmd.sh ]]; then
@@ -88,7 +109,15 @@ if [ ! -z "$USERSTRING" ]; then
                 su $new_username
             fi
         fi
+    else
+        if [ ! -z "$WORKINGFOLDER" ]; then
+            cd $WORKINGFOLDER
+        fi
+        "$cmd"
     fi
 else
+    if [ ! -z "$WORKINGFOLDER" ]; then
+        cd $WORKINGFOLDER
+    fi
     "$cmd"
 fi
