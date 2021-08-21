@@ -9,9 +9,10 @@ app_name=mldock
 
 repository="omeryair/"
 image_name="mldock"
-version_name="v0.5"
+version_name="v0.8"
 
-container_name="mldock_$USER"
+container_name=""
+pass_ssh_key=false
 
 main_cli() {
     ## Parse args
@@ -23,6 +24,7 @@ main_cli() {
         echo "    setup                   Create a link or a copy of the $app_name.sh script in the /usr/bin folder (requiers sudo)."
         echo "    build                   Build the image."
         echo "    run                     Run a command inside a new container."
+        echo "    run_server              Run the default mldock server."
         echo "    run_remote              Run a command inside a new container on a remote machine."
         echo "    exec                    Execute a command inside an existing container."
         echo "    exec_remote             Execute a command inside an existing container on a remote machine."
@@ -68,6 +70,9 @@ main_cli() {
             ;;
         run)
             run_cli "$@"
+            ;;
+        run_server)
+            run_server_cli "$@"
             ;;
         run_remote)
             run_remote_cli "$@"
@@ -196,7 +201,7 @@ run_cli() {
     fi
     map_host=true
     detach_container=false
-    home_folder=""
+    home_folder="$HOME"
     working_folder=""
     command_to_run=""
     use_tmux=false
@@ -219,7 +224,7 @@ run_cli() {
         echo "Options:"
         echo "    -v version_name         The version name to use for the build image. Default: \"$version_name\""
         echo "    -c container_name       The name to for the created container. Default: \"$container_name\""
-        echo "    -f home_folder          A folder to map as the dockuser's home folder."
+        echo "    -f home_folder          A folder to map as the dockuser's home folder. Default: \"$home_folder\""
         echo "    -w working_folder       The working folder."
         echo "    -s                      Run the command as root."
         echo "    -u                      Run the command as dockuser user."
@@ -301,6 +306,25 @@ run_cli() {
     run_command
 }
 
+run_server_cli() {
+    container_name="mldock_$USER"
+
+    usage () {
+        echo "Run the default mldock server"
+        echo ""
+        echo "This command is equivalent to runing \"mldock run -d -c $container_name run_server\"."
+        echo "This command share the same arguments of the \"run\" command."
+    }
+
+    if [ "$#" -eq 1 ] && [ "$1" ==  "-h" ]; then
+        usage
+        exit 0
+    fi
+
+    set -- "$@" -d -c "$container_name" run_server
+    run_cli
+}
+
 run_remote_cli() {
     if xhost >& /dev/null ; then
         ## Display exist
@@ -316,7 +340,8 @@ run_remote_cli() {
     fi
     map_host=true
     detach_container=false
-    home_folder=""
+    local_ip=`hostname -I  | cut -d " " -f1`
+    home_folder="$USER@${local_ip}:$HOME"
     working_folder=""
     command_to_run=""
     use_tmux=false
@@ -329,7 +354,7 @@ run_remote_cli() {
         echo "Options:"
         echo "    -v version_name         The version name to use for the build image. Default: \"$version_name\""
         echo "    -c container_name       The name to for the created container. Default: \"$container_name\""
-        echo "    -f home_folder          A folder to map as the dockuser's home folder."
+        echo "    -f home_folder          A folder to map as the dockuser's home folder. Default: \"$home_folder\""
         echo "    -w working_folder       The working folder."
         echo "    -s                      Run the command as root."
         echo "    -u                      Run the command as dockuser user."
@@ -424,6 +449,10 @@ run_remote_cli() {
     else
         use_nvidia_runtime=false
     fi
+    if [ -f "$HOME/.ssh/id_rsa.mldock" ]; then
+        pass_ssh_key=true
+    fi
+
     check_docker_for_sudo
     gen_command
     run_remote_command
@@ -663,12 +692,20 @@ gen_command() {
             extra_args+=("--runtime=nvidia")
         fi
     fi
+    if [ "$pass_ssh_key" = true ]; then
+        ssh_key=`cat $HOME/.ssh/id_rsa.mldock`
+        ssh_key="${ssh_key//$'\n'/  }"
+        extra_args+=("-e" "SSHKEY=\"$ssh_key\"")
+    fi
     cmd+=("docker" "run" \
          "-e" "SSHPORT=9022" \
          "--rm" \
          "--privileged" \
-         "--network" "host" \
-         "--name" "$container_name")
+         "--shm-size=2gb" \
+         "--network=host")
+    if [[ ! -z "$container_name" ]]; then
+        cmd+=( "--name=$container_name" )
+    fi
     cmd+=( "${extra_args[@]}" )
     cmd+=("$repository$image_name:$version_name")
     if [ "$use_tmux" = true ]; then

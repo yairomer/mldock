@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
+FROM nvidia/cuda:11.0-cudnn8-devel-ubuntu18.04
 
 ## Install basic packages and useful utilities
 ## ===========================================
@@ -18,12 +18,9 @@ RUN apt-get update -y  && \
         cmake \
         sudo \
         openssh-server \
-        python3 \
-        python3-dev \
+        python3.8 \
+        python3.8-dev \
         python3-pip \
-        python \
-        python-dev \
-        python-pip \
         pylint \
         sshfs \
         wget \
@@ -51,7 +48,6 @@ RUN apt-get update -y  && \
         libfreetype6-dev \
         libpng-dev \
         ffmpeg \
-        python-qt4 \
         python3-pyqt5 \
         imagemagick \
         inkscape \
@@ -64,7 +60,6 @@ RUN apt-get update -y  && \
         pandoc \
         texlive-fonts-extra \
         texlive-fonts-recommended \
-        texlive-generic-recommended \
         texlive-latex-base \
         texlive-latex-extra \
         texlive-xetex \
@@ -73,7 +68,7 @@ RUN apt-get update -y  && \
         libncursesw5-dev \
         && \
     apt-get install -y neovim && \
-    pip install pynvim==0.3.2 && \
+    pip3 install pynvim==0.3.2 && \
     apt-get clean
 
     ## ToDo: increase memory limit to 10GB in: /etc/ImageMagick-6/policy.xml
@@ -98,8 +93,8 @@ RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
 ## ==========
 RUN mkdir /var/run/sshd && \
     sed 's/^#\?PasswordAuthentication .*$/PasswordAuthentication yes/g' -i /etc/ssh/sshd_config && \
-    sed 's/^#\?Port .*$/Port 9022/g' -i /etc/ssh/sshd_config && \
-    sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+    sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd && \
+    echo "user_allow_other" >> /etc/fuse.conf
 
 ## VSCode
 ## ======
@@ -112,18 +107,6 @@ RUN cd /tmp && \
     apt-get install -y code && \
     rm microsoft.gpg
 
-## Install pycharm
-## ===============
-ARG PYCHARM_SOURCE="https://download.jetbrains.com/python/pycharm-community-2018.3.3.tar.gz"
-RUN mkdir /opt/pycharm && \
-    cd /opt/pycharm && \
-    curl -L $PYCHARM_SOURCE -o installer.tgz && \
-    tar --strip-components=1 -xzf installer.tgz && \
-    rm installer.tgz && \
-    /usr/bin/python2 /opt/pycharm/helpers/pydev/setup_cython.py build_ext --inplace && \
-    /usr/bin/python3 /opt/pycharm/helpers/pydev/setup_cython.py build_ext --inplace
-COPY ./resources/pycharm.bin /usr/local/bin/pycharm
-
 ## Setup app folder
 ## ================
 RUN mkdir /app && \
@@ -131,88 +114,84 @@ RUN mkdir /app && \
 
 ## Setup python environment
 ## ========================
-RUN pip3 install pip==20.0.2 && \
-    hash -r pip && \
-    pip3 install -U \
-        virtualenv==20.0.10 \
-        ipython==7.13.0 \
-        numpy==1.18.1 \
-        scipy==1.4.0 \
-        cvxpy==1.0.28 \
-        matplotlib==3.2.0 \
-        PyQt5==5.14.1 \
-        seaborn==0.10.0 \
-        plotly==4.5.3 \
-        dash==1.9.1 \
-        bokeh==2.0.0 \
+RUN python3.8 -m pip install pip==21.0.1 && \
+    python3.8 -m pip install wrapt --ignore-installed && \
+    python3.8 -m pip install -U \
+        altair==4.1.0 \
+        bokeh==2.3.1 \
+        chainer==7.7.0 \
+        cvxpy==1.1.12 \
+        dash==1.20.0 \
+        filelock==3.0.12 \
+        flake8==3.9.1 \
+        Flask==1.1.2 \
         ggplot==0.11.5 \
-        altair==4.0.1 \
-        pandas==1.0.1 \
-        pyyaml==5.3 \
-        protobuf==3.11.3 \
-        ipdb==0.13.2 \
-        flake8==3.7.9 \
-        cython==0.29.15 \
-        sympy==1.5.1 \
-        nose==1.3.7 \
-        sphinx==1.8.1 \
-        tqdm==4.43.0 \
-        opencv-contrib-python==4.2.0.32 \
-        scikit-image==0.16.2 \
-        scikit-learn==0.22.2 \
-        imageio==2.8.0 \
-        torchvision==0.4.0 \
-        torchviz==0.0.1 \
-        Pillow==6.1 \
-        torchsummary==1.5.1 \
-        tensorflow-gpu==2.0.0 \
-        tensorboardX==2.0 \
+        graphviz==0.16 \
+        h5py==2.10.0 \
+        imageio==2.9.0 \
+        ipdb==0.13.7 \
+        ipython==7.22.0 \
+        ipywidgets==7.6.3 \
         jupyter==1.0.0 \
+        jupyter-contrib-nbextensions==0.5.1 \
+        jupyterlab==3.0.14 \
         jupyterthemes==0.20.0 \
-        jupyter_contrib_nbextensions==0.5.1 \
-        jupyterlab==2.0.1 \
-        ipywidgets==7.5.1 \
+        kaleido==0.2.1 \
+        line-profiler==3.2.1 \
+        lxml==4.6.3 \
+        matplotlib==3.4.1 \
+        nbconvert==6.0.7 \
+        nose==1.3.7 \
+        numpy==1.19.5 \
+        opencv-contrib-python==4.5.1.48 \
+        pandas==1.2.4 \
+        Pillow==8.2.0 \
+        plotly==4.14.3 \
+        protobuf==3.15.8 \
+        pylint==2.8.2 \
+        PyQt5==5.15.4 \
+        PyYAML==5.4.1 \
+        scikit-image==0.18.1 \
+        scikit-learn==0.24.2 \
+        scipy==1.6.3 \
+        seaborn==0.11.1 \
+        Sphinx==3.5.4 \
+        sympy==1.8 \
+        tensorboardX==2.2 \
+        tensorflow-gpu==2.4.1 \
+        torchaudio==0.8.1 \
+        torchsummary==1.5.1 \
+        torchvision==0.9.1 \
+        torchviz==0.0.2 \
+        tqdm==4.60.0 \
+        virtualenv==20.4.4 \
         visdom==0.1.8.9 \
-        line_profiler==3.0.2 \
         && \
         rm -r /root/.cache/pip
 ENV MPLBACKEND=Agg
 
 ## Import matplotlib the first time to build the font cache.
 ## ---------------------------------------------------------
-RUN python3 -c "import matplotlib.pyplot" && \
+RUN python3.8 -c "import matplotlib.pyplot" && \
     cp -r /root/.cache /etc/skel/
 
 ## Setup Jupyter
 ## -------------
-RUN pip install six==1.11 && \
+RUN python3.8 -m pip install six==1.11 && \
     jupyter nbextension enable --py widgetsnbextension && \
     jupyter contrib nbextension install --system && \
     jupyter nbextensions_configurator enable && \
     jupyter serverextension enable --py jupyterlab --system && \
-    pip install RISE && \
+    python3.8 -m pip install RISE && \
     jupyter-nbextension install rise --py --sys-prefix --system && \
     cp -r /root/.jupyter /etc/skel/
-
-## Install Orca (for exporting Plotly figures to images)
-## =====================================================
-RUN apt install -y xvfb libgconf2-4 && \
-    wget https://github.com/plotly/orca/releases/download/v1.1.1/orca-1.1.1-x86_64.AppImage -P /tmp && \
-    chmod 777 /tmp/orca-1.1.1-x86_64.AppImage && \
-    cd /tmp && \
-    ./orca-1.1.1-x86_64.AppImage --appimage-extract && \
-    mv /tmp/squashfs-root /opt/squashfs-root && \
-    chmod -R 777 /opt/squashfs-root && \
-    printf '#!/bin/bash \nxvfb-run --auto-servernum --server-args "-screen 0 640x480x24" /opt/squashfs-root/app/orca "$@"' > /usr/bin/orca && \
-    chmod 777 /usr/bin/orca && \
-    rm -r /tmp/orca-1.1.1-x86_64.AppImage
 
 ## Create virtual environment
 ## ==========================
 RUN cd /app/ && \
-    virtualenv --system-site-packages dockvenv && \
-    grep -rlnw --null /usr/local/bin/ -e '#!/usr/bin/python3' | xargs -0r cp -t /app/dockvenv/bin/ && \
-    sed -i "s/#"'!'"\/usr\/bin\/python3/#"'!'"\/usr\/bin\/env python/g" /app/dockvenv/bin/* && \
+    virtualenv --python=python3.8 --system-site-packages /app/dockvenv && \
+    grep -rlnw --null /usr/local/bin/ -e '#!/usr/bin/python3.8' | xargs -0r cp -t /app/dockvenv/bin/ && \
+    sed -i "s/#"'!'"\/usr\/bin\/python3.8/#"'!'"\/usr\/bin\/env python/g" /app/dockvenv/bin/* && \
     mv /app/dockvenv /root/ && \
     ln -sfT /root/dockvenv /app/dockvenv && \
     cp -rp /root/dockvenv /etc/skel/ && \
