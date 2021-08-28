@@ -11,8 +11,9 @@ repository="omeryair/"
 image_name="mldock"
 version_name="v0.8"
 
-container_name=""
+container_name="mldock_$USER"
 pass_ssh_key=false
+print_command=false
 
 main_cli() {
     ## Parse args
@@ -187,6 +188,7 @@ build_cli() {
 }
 
 run_cli() {
+    container_name=""
     if xhost >& /dev/null ; then
         ## Display exist
         connect_to_x_server=true
@@ -307,8 +309,6 @@ run_cli() {
 }
 
 run_server_cli() {
-    container_name="mldock_$USER"
-
     usage () {
         echo "Run the default mldock server"
         echo ""
@@ -321,11 +321,11 @@ run_server_cli() {
         exit 0
     fi
 
-    set -- "$@" -d -c "$container_name" run_server
-    run_cli
+    run_cli "$@" -d -c "$container_name" run_server
 }
 
 run_remote_cli() {
+    container_name=""
     if xhost >& /dev/null ; then
         ## Display exist
         connect_to_x_server=true
@@ -717,8 +717,10 @@ gen_command() {
 }
 
 run_command() {
-    echo "Running: ${docker_sudo_prefix}${cmd[@]}"
-    echo ""
+    if [ "$print_command" = true ]; then
+        echo "Running: ${docker_sudo_prefix}${cmd[@]}"
+        echo ""
+    fi
     "${docker_sudo_prefix}${cmd[@]}"
 
     if [ "$use_tmux" = true ] && [[ "$detach_tmux" = false ]]; then
@@ -728,8 +730,10 @@ run_command() {
 }
 
 run_remote_command() {
-    echo "Running on $remote_ip: ${cmd[@]}"
-    echo ""
+    if [ "$print_command" = true ]; then
+        echo "Running on $remote_ip: ${cmd[@]}"
+        echo ""
+    fi
     ssh $remote_ip -t "${cmd[@]}"
 
     if [ "$use_tmux" = true ] && [[ "$detach_tmux" = false ]]; then
