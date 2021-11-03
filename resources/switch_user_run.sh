@@ -18,7 +18,7 @@ if [ ! -z "$SSHKEY" ]; then
     mkdir /root/.ssh
     echo "${SSHKEY//  /$'\n'}" > /root/.ssh/id_rsa.mldock
     chmod 400 /root/.ssh/id_rsa.mldock
-    echo "IdentityFile ~/yy.ssh/id_rsa.mldock" >> /root/.ssh/config
+    echo "IdentityFile ~/.ssh/id_rsa.mldock" >> /root/.ssh/config
 fi
 
 if [ ! -z "$SSHFSDIRS" ]; then
@@ -102,7 +102,7 @@ if [ ! -z "$USERSTRING" ]; then
             cd /home/$new_username
         fi
 
-        if [ ! -z "$WORKINGFOLDER" ]; then
+        if [[ ! -z "$WORKINGFOLDER" && -d "$WORKINGFOLDER" ]]; then
             cd $WORKINGFOLDER
         fi
 

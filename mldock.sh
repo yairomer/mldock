@@ -204,7 +204,7 @@ run_cli() {
     map_host=true
     detach_container=false
     home_folder="$HOME"
-    working_folder=""
+    working_folder="$PWD"
     command_to_run=""
     use_tmux=false
     extra_args=()
@@ -342,7 +342,7 @@ run_remote_cli() {
     detach_container=false
     local_ip=`hostname -I  | cut -d " " -f1`
     home_folder="$USER@${local_ip}:$HOME"
-    working_folder=""
+    working_folder="$PWD"
     command_to_run=""
     use_tmux=false
     extra_args=()
@@ -453,7 +453,6 @@ run_remote_cli() {
         pass_ssh_key=true
     fi
 
-    check_docker_for_sudo
     gen_command
     run_remote_command
 }
@@ -461,6 +460,7 @@ run_remote_cli() {
 exec_cli() {
     extra_args=()
     command_to_run="bash"
+    working_folder="$PWD"
     usage () {
         echo "Execute a command inside an existing container"
         echo ""
@@ -468,6 +468,7 @@ exec_cli() {
         echo "   or: $app_name $subcommand -h    to print this help message."
         echo "Options:"
         echo "    -c container_name       The name to for the created container. default: \"$container_name\""
+        echo "    -w working_folder       The working folder."
         echo "    -e extra_args           Extra arguments to pass to the docker exec command."
     }
 
@@ -480,6 +481,9 @@ exec_cli() {
         case $opt in
             c)
                 container_name=$OPTARG
+                ;;
+            w)
+                working_folder=$OPTARG
                 ;;
             e)
                 IFS=$'\n' extra_args=( $(xargs -n1 printf "%s\n" <<< "$OPTARG") )
@@ -504,11 +508,13 @@ exec_cli() {
     fi
 
     check_docker_for_sudo
-    exec_command
+    gen_exec_command
+    run_command
 }
 
 exec_remote_cli() {
     extra_args=()
+    working_folder="$PWD"
     usage () {
         echo "Execute a command inside an existing container"
         echo ""
@@ -516,6 +522,7 @@ exec_remote_cli() {
         echo "   or: $app_name $subcommand -h    to print this help message."
         echo "Options:"
         echo "    -c container_name       The name to for the created container. default: \"$container_name\""
+        echo "    -w working_folder       The working folder."
         echo "    -e extra_args           Extra arguments to pass to the docker exec command."
     }
 
@@ -531,6 +538,9 @@ exec_remote_cli() {
             c)
                 container_name=$OPTARG
                 ;;
+            w)
+                working_folder=$OPTARG
+                ;;
             e)
                 IFS=$'\n' extra_args=( $(xargs -n1 printf "%s\n" <<< "$OPTARG") )
                 unset IFS
@@ -553,7 +563,8 @@ exec_remote_cli() {
         command_to_run=( "$@" )
     fi
 
-    exec_remote_command
+    gen_exec_command
+    run_remote_command
 }
 
 stop_cli() {
@@ -707,12 +718,12 @@ gen_command() {
         cmd+=( "--name=$container_name" )
     fi
     cmd+=( "${extra_args[@]}" )
-    cmd+=("$repository$image_name:$version_name")
+    cmd+=( "$repository$image_name:$version_name" )
     if [ "$use_tmux" = true ]; then
         cmd+=("run_in_detached_tmux")
     fi
     if [[ ! -z "$command_to_run" ]]; then
-        cmd+=("${command_to_run[@]}")
+        cmd+=( "${command_to_run[@]}" )
     fi
 }
 
@@ -742,30 +753,26 @@ run_remote_command() {
     fi
 }
 
-exec_command() {
+gen_exec_command() {
+    folder_exists=$(docker exec -w $working_folder mldock_omeryair echo test >& /dev/null && echo true || echo false)
     new_username=$(${docker_sudo_prefix}docker exec $container_name cat /tmp/dock_config/username)
+
     if [[ ! -z "$new_username" ]]; then
-        extra_args="$extra_args -u $new_username -w /home/$new_username"
+        extra_args+=("-u" "$new_username")
     fi
-
-    ${docker_sudo_prefix}docker exec -it $extra_args $container_name  "${command_to_run[@]}"
-}
-
-
-exec_remote_command() {
-    new_username=$(ssh -o LogLevel=QUIET $remote_ip -t "docker exec $container_name cat /tmp/dock_config/username" | tr -d '\r')
-
+    if [ "$folder_exists" = true ]; then
+        extra_args+=("-w" "$working_folder")
+    else
+        if [[ ! -z "$new_username" ]]; then
+            extra_args+=("-w" "/home/$new_username")
+        fi
+    fi
     cmd+=("docker" "exec" \
          "-it")
-    if [[ ! -z "$new_username" ]]; then
-        extra_args+=("-u" "$new_username" "-w" "/home/$new_username")
-    fi
     cmd+=( "${extra_args[@]}" )
-    cmd+=("$container_name")
-    cmd+=("${command_to_run[@]}")
-    run_remote_command
+    cmd+=( "$container_name" )
+    cmd+=( "${command_to_run[@]}" )
 }
-
 
 stop_container() {
     echo "-> Stopping the container"
