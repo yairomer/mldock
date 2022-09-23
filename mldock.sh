@@ -23,6 +23,7 @@ main_cli() {
         echo ""
         echo "usage: $app_name  <command> [<options>]"
         echo "    setup                   Create a link or a copy of the $app_name.sh script in the /usr/bin folder (requiers sudo)."
+        echo "    setup_remote            Install docker and nvidia-docker on a remote machine."
         echo "    build                   Build the image."
         echo "    run                     Run a command inside a new container."
         echo "    run_server              Run the default mldock server."
@@ -65,6 +66,9 @@ main_cli() {
     case "$subcommand" in
         setup)
             setup_cli "$@"
+            ;;
+        setup_remote)
+            setup_remote_cli "$@"
             ;;
         build)
             build_cli "$@"
@@ -136,6 +140,31 @@ setup_cli() {
     fi
 
     run_setup
+}
+
+setup_remote_cli() {
+    usage () {
+        echo "Setup docker and nvidia-docker a remote machine"
+        echo ""
+        echo "usage: $app_name $subcommand remote_ip"
+        echo "   or: $app_name $subcommand -h    to print this help message."
+        echo "Options:"
+    }
+
+    if [ "$#" -eq 1 ] && [ "$1" ==  "-h" ]; then
+        usage
+        exit 0
+    fi
+
+    if [ "$#" -lt 1 ]; then
+        echo "Error: Was expecting a remote ip" 1>&2
+        usage
+        exit 1
+    fi
+
+    remote_ip=$1; shift
+
+    run_setup_remote
 }
 
 build_cli() {
@@ -634,6 +663,33 @@ run_setup() {
     fi
 }
 
+run_setup_remote() {
+    if [ "$print_command" = true ]; then
+        echo "Running on $remote_ip: ${cmd[@]}"
+        echo ""
+    fi
+    echo "-> Install docker"
+    ssh $remote_ip -t sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common  # allow apt to use a repository over HTTPS
+    ssh $remote_ip -t "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -"  # Add Docker’s official GPG key
+    ssh $remote_ip -t echo "\"deb [arch=amd64] https://download.docker.com/linux/ubuntu \$(lsb_release -cs) stable\""
+    ssh $remote_ip -t sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu \"\$(lsb_release -cs)\" stable"
+    ssh $remote_ip -t sudo apt-get update || true
+    ssh $remote_ip -t sudo apt-get install -y docker-ce
+
+    echo "-> Add user to the docker group"
+    ssh $remote_ip -t sudo groupadd docker || true
+    ssh $remote_ip -t sudo usermod -aG docker \"\$USER\"
+
+    echo "-> Install nvidia-docker"
+    ssh $remote_ip -t curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+    ssh $remote_ip -t ". /etc/os-release; curl -s -L \"https://nvidia.github.io/nvidia-docker/\$ID\$VERSION_ID/nvidia-docker.list\" | sudo tee /etc/apt/sources.list.d/nvidia-docker.list"
+    ssh $remote_ip -t sudo apt-get update
+    ssh $remote_ip -t sudo apt-get install -y nvidia-docker2
+
+    echo "-> Restart the docker service"
+    ssh $remote_ip -t sudo pkill -SIGHUP dockerd
+}
+
 build_image() {
     echo "-> Building image from $ref_dir"
 
@@ -712,7 +768,7 @@ gen_command() {
          "-e" "SSHPORT=9022" \
          "--rm" \
          "--privileged" \
-         "--shm-size=2gb" \
+         "--shm-size=32gb" \
          "--network=host")
     if [[ ! -z "$container_name" ]]; then
         cmd+=( "--name=$container_name" )
