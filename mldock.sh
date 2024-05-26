@@ -9,11 +9,12 @@ app_name=mldock
 
 repository="omeryair/"
 image_name="mldock"
-version_name="v0.8"
+version_name="v0.9"
 
 container_name="mldock_$USER"
 pass_ssh_key=false
 print_command=false
+# print_command=true
 
 main_cli() {
     ## Parse args

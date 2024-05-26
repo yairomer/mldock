@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.0-cudnn8-devel-ubuntu18.04
+FROM nvidia/cuda:11.3.0-cudnn8-devel-ubuntu20.04
 
 ## Install basic packages and useful utilities
 ## ===========================================
@@ -6,6 +6,7 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update -y  && \
     apt-get upgrade -y && \
     apt-get install -y software-properties-common && \
+    add-apt-repository ppa:flexiondotorg/nvtop && \
     add-apt-repository ppa:neovim-ppa/stable && \
     apt-get update -y && \
     apt-get install -y \
@@ -37,6 +38,7 @@ RUN apt-get update -y  && \
         zsh \
         unzip \
         htop \
+        nvtop \
         tree \
         silversearcher-ag \
         ctags \
@@ -62,7 +64,9 @@ RUN apt-get update -y  && \
         texlive-fonts-recommended \
         texlive-latex-base \
         texlive-latex-extra \
+        texlive-science \
         texlive-xetex \
+        latexmk \
         graphviz \
         libncurses5-dev \
         libncursesw5-dev \
@@ -71,18 +75,9 @@ RUN apt-get update -y  && \
     pip3 install pynvim==0.3.2 && \
     apt-get clean
 
-    ## ToDo: increase memory limit to 10GB in: /etc/ImageMagick-6/policy.xml
-
-## Install nvtop
-## =============
-RUN git clone https://github.com/Syllo/nvtop.git /tmp/nvtop && \
-    mkdir /tmp/nvtop/build && \
-    cd /tmp/nvtop/build && \
-    cmake .. || : && \
-    make || : && \
-    make install || : && \
-    cd / && \
-    rm -r /tmp/nvtop
+## Increase memory limit of IamgeMagick to 10GB
+## ============================================
+RUN sed "s/<policy domain=\"resource\" name=\"memory\" value=\"256MiB\"\/>/<policy domain=\"resource\" name=\"memory\" value=\"10GiB\"\/>/g" /etc/ImageMagick-6/policy.xml 
 
 ## Set locale
 ## ==========
@@ -96,17 +91,6 @@ RUN mkdir /var/run/sshd && \
     sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd && \
     echo "user_allow_other" >> /etc/fuse.conf
 
-## VSCode
-## ======
-RUN cd /tmp && \
-    curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg && \
-    install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/ && \
-    echo "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list && \
-    apt-get install apt-transport-https && \
-    apt-get update && \
-    apt-get install -y code && \
-    rm microsoft.gpg
-
 ## Setup app folder
 ## ================
 RUN mkdir /app && \
@@ -114,58 +98,56 @@ RUN mkdir /app && \
 
 ## Setup python environment
 ## ========================
-RUN python3.8 -m pip install pip==21.0.1 && \
-    python3.8 -m pip install wrapt --ignore-installed && \
+RUN python3.8 -m pip install pip==22.3.1 && \
     python3.8 -m pip install -U \
-        altair==4.1.0 \
-        bokeh==2.3.1 \
-        chainer==7.7.0 \
-        cvxpy==1.1.12 \
-        dash==1.20.0 \
-        filelock==3.0.12 \
-        flake8==3.9.1 \
-        Flask==1.1.2 \
+        cvxpy==1.2.2 \
+        dash==2.7.1 \
+        datasets==2.8.0 \
+        filelock==3.8.2 \
+        flake8==6.0.0 \
+        Flask==2.2.2 \
         ggplot==0.11.5 \
-        graphviz==0.16 \
-        h5py==2.10.0 \
-        imageio==2.9.0 \
-        ipdb==0.13.7 \
-        ipython==7.22.0 \
-        ipywidgets==7.6.3 \
+        graphviz==0.20.1 \
+        h5py==3.7.0 \
+        imageio==2.23.0. \
+        ipdb==0.13.11 \
+        ipython==8.7.0 \
+        ipywidgets==8.0.4 \
         jupyter==1.0.0 \
-        jupyter-contrib-nbextensions==0.5.1 \
-        jupyterlab==3.0.14 \
+        jupyter-contrib-nbextensions==0.7.0 \
+        jupyterlab==3.5.2 \
         jupyterthemes==0.20.0 \
         kaleido==0.2.1 \
-        line-profiler==3.2.1 \
-        lxml==4.6.3 \
-        matplotlib==3.4.1 \
-        nbconvert==6.0.7 \
+        line-profiler==4.0.2 \
+        lxml==4.9.2 \
+        matplotlib==3.6.2 \
+        nbconvert==7.2.7 \
         nose==1.3.7 \
-        numpy==1.19.5 \
-        opencv-contrib-python==4.5.1.48 \
-        pandas==1.2.4 \
-        Pillow==8.2.0 \
-        plotly==4.14.3 \
-        protobuf==3.15.8 \
-        pylint==2.8.2 \
-        PyQt5==5.15.4 \
-        PyYAML==5.4.1 \
-        scikit-image==0.18.1 \
-        scikit-learn==0.24.2 \
-        scipy==1.6.3 \
-        seaborn==0.11.1 \
-        Sphinx==3.5.4 \
-        sympy==1.8 \
-        tensorboardX==2.2 \
-        tensorflow-gpu==2.4.1 \
-        torchaudio==0.8.1 \
+        numpy==1.24.1 \
+        opencv-contrib-python==4.6.0.66 \
+        pandas==1.5.2 \
+        Pillow==9.3.0 \
+        plotly==5.11.0 \
+        pylint==2.15.9 \
+        PyQt5==5.14.1 \
+        PyYAML==6.0 \
+        scikit-image==0.19.3 \
+        scikit-learn==1.2.0 \
+        scipy==1.9.3 \
+        seaborn==0.12.1 \
+        six==1.16.0 \
+        Sphinx==5.3.0 \
+        sympy==1.11.1 \
+        tensorflow-gpu==2.11.0 \
+        torchaudio==0.13.1 \
+        torchinfo==1.7.1 \
         torchsummary==1.5.1 \
-        torchvision==0.9.1 \
-        torchviz==0.0.2 \
-        tqdm==4.60.0 \
-        virtualenv==20.4.4 \
-        visdom==0.1.8.9 \
+        torchvision==0.14.1 \
+        tqdm==4.64.1 \
+        transformers==4.25.1 \
+        virtualenv==20.17.1 \
+        visdom==0.2.3 \
+        wandb==0.13.5 \
         && \
         rm -r /root/.cache/pip
 ENV MPLBACKEND=Agg
@@ -177,8 +159,7 @@ RUN python3.8 -c "import matplotlib.pyplot" && \
 
 ## Setup Jupyter
 ## -------------
-RUN python3.8 -m pip install six==1.11 && \
-    jupyter nbextension enable --py widgetsnbextension && \
+RUN jupyter nbextension enable --py widgetsnbextension && \
     jupyter contrib nbextension install --system && \
     jupyter nbextensions_configurator enable && \
     jupyter serverextension enable --py jupyterlab --system && \
@@ -195,7 +176,7 @@ RUN cd /app/ && \
     mv /app/dockvenv /root/ && \
     ln -sfT /root/dockvenv /app/dockvenv && \
     cp -rp /root/dockvenv /etc/skel/ && \
-    sed -i "s/^\(PATH=\"\)\(.*\)$/\1\/app\/dockvenv\/bin\/:\2/g" /etc/environment
+    sed -i "s/^\(PATH=\"\)\(.*\)$/\1\/app\/dockvenv\/bin:\2/g" /etc/environment
 ENV PATH=/app/dockvenv/bin:$PATH
     # virtualenv dockvenv && \
 
@@ -221,7 +202,7 @@ RUN mkdir /tmp/dock_config && \
 ## ============
 RUN mkdir /app/bin && \
     chmod a=u -R /app/bin && \
-    sed -i "s/^\(PATH=\"\)\(.*\)$/\1\/app\/bin\/:\2/g" /etc/environment
+    sed -i "s/^\(PATH=\"\)\(.*\)$/\1\/app\/bin:\2/g" /etc/environment
 ENV PATH="/app/bin:$PATH"
 COPY /resources/switch_user_run.sh /app/bin/switch_user_run
 COPY /resources/default_notebook.sh /app/bin/default_notebook
